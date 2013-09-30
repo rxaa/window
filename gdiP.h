@@ -5,7 +5,7 @@
 
 namespace sdf
 {
-	class gdiP
+	class Gdip
 	{
 	public:
 		static void Init()
@@ -19,15 +19,11 @@ namespace sdf
 			Gdiplus::GdiplusShutdown(gdiplusToken_);
 		}
 
+
 	private:
 		static Gdiplus::GdiplusStartupInput gdiplusStartupInput_;
 		static ULONG_PTR gdiplusToken_;
 	};
-
-	STATIC_INIT ULONG_PTR gdiP::gdiplusToken_=0;
-
-	STATIC_INIT Gdiplus::GdiplusStartupInput gdiP::gdiplusStartupInput_=0;
-
 }
 
 

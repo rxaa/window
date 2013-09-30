@@ -29,6 +29,11 @@ namespace sdf
 		{
 			return (HFONT)::SendMessage(handle , WM_GETFONT, 0, 0);
 		}
+
+		inline HFONT GetFont()
+		{
+			return GetFont(handle_);
+		}
 		//设置窗口图标
 		inline static void SetIcon(HWND h , int id)
 		{
@@ -83,6 +88,16 @@ namespace sdf
 			commandMap_[id]=cb;
 		}
 
+		void SetTimer(uint id, uint time)
+		{
+			::SetTimer(handle_, id, time, 0);
+		}
+
+		void KillTimer(uint id)
+		{
+			::KillTimer(handle_, id);
+		}
+
 		static int GetScreenWidth()
 		{
 			return ::GetSystemMetrics(SM_CXSCREEN);
@@ -104,12 +119,18 @@ namespace sdf
 		virtual void OnMouseLeft(bool ){}
 		virtual void OnMouseRight(bool ){}
 
+		virtual void OnTimer(uint){}
+
 		//消息循环
 		static void MessageLoop();
 	private:
 		void InitWinData()
 		{
 			gdi_.Init(handle_);
+			//使用父窗口字体
+			gdi_.SetObject(GetFont());
+			//文字背景透明
+			gdi_.SetTextBackColor();
 			try
 			{
 				OnInit();

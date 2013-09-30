@@ -35,14 +35,16 @@ namespace sdf
 
 		DrawCallBack onDraw_;
 
-		static const DWORD blueColor_ = 0x4192E1;
-		static const DWORD blueHoverColor_ = 0x1B80E4;
-		static const DWORD orangeColor_ = 0xE19241;
-		static const DWORD orangeHoverColor_ = 0xE4801B;
-		static const DWORD greenColor_ = 0x1ABC6E;
-		static const DWORD greenHoverColor_ = 0x0FB264;
-		static const DWORD redColor_ = 0xFF2F2F;
-		static const DWORD redHoverColor_ = 0xF00000;
+		//ÑÕÉ«(ARGB)
+		//ÄÚ´æ:(BGRA)
+		static const DWORD blueColor_ = 0xFF4192E1;
+		static const DWORD blueHoverColor_ = 0xFF1B80E4;
+		static const DWORD orangeColor_ = 0xFFE19241;
+		static const DWORD orangeHoverColor_ = 0xFFE4801B;
+		static const DWORD greenColor_ = 0xFF1ABC6E;
+		static const DWORD greenHoverColor_ = 0xFF0FB264;
+		static const DWORD redColor_ = 0xFFFF2F2F;
+		static const DWORD redHoverColor_ = 0xFFF00000;
 
 		inline static void BlueButton(Button & but)
 		{

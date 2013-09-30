@@ -22,6 +22,10 @@ int  sdf::Window::mouseY_ = 0;
 
 int  sdf::Window::mouseX_ = 0;
 
+ULONG_PTR sdf::Gdip::gdiplusToken_ = 0;
+
+Gdiplus::GdiplusStartupInput sdf::Gdip::gdiplusStartupInput_ = 0;
+
 ////////////////////////////////Brush//////////////////////////////////////////
 
 void sdf::Brush::SetFromBitmap(Bitmap & bmp)
@@ -167,6 +171,9 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, uint message, WPARAM wParam, 
 		case WM_LBUTTONUP:
 			winP->OnMouseLeft(false);
 			return TRUE;
+		case WM_TIMER:
+			winP->OnTimer((uint)wParam);
+			return TRUE;
 		case WM_PAINT:
 			{
 				//PAINTSTRUCT ps={0} ;
@@ -305,7 +312,7 @@ void sdf::Window::InitImage(int backGround)
 {
 	backGround_.LoadBMP(backGround);
 	backBrush_.SetFromBitmap(backGround_);
-	//gdiP::Init();
+	Gdip::Init();
 }
 
 HBRUSH sdf::Window::OnDrawBackground()
@@ -374,8 +381,8 @@ void sdf::Window::PopMessage(const CC & msg,int time)
 	}
 
 	::SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)new PopMsgStruct{ msg, 0, time });
-	::ShowWindow(hwnd, 1);
-	//SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOACTIVATE);
+	//::ShowWindow(hwnd, 1);
+	::SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOACTIVATE);
 
 	//::UpdateWindow(hwnd);
 
@@ -387,10 +394,10 @@ LRESULT  __stdcall sdf::Window::PopMessageProc(HWND hDlg, uint message, WPARAM w
 	{
 	case WM_CREATE:
 		// 设置分层属性 
-		SetTimer(hDlg, 1, 20, 0);
+		::SetTimer(hDlg, 1, 20, 0);
 		SetWindowLongPtr(hDlg, GWL_EXSTYLE, GetWindowLongPtr(hDlg, GWL_EXSTYLE) | WS_EX_LAYERED);
 		// 设置透明度 0 - completely transparent   255 - opaque  
-		SetLayeredWindowAttributes(hDlg, 0, 0, LWA_ALPHA);
+		::SetLayeredWindowAttributes(hDlg, 0, 0, LWA_ALPHA);
 		return 0;
 
 	case WM_TIMER:{
@@ -401,37 +408,34 @@ LRESULT  __stdcall sdf::Window::PopMessageProc(HWND hDlg, uint message, WPARAM w
 		if (wParam == 1)
 		{
 			mp->transparent_ += 20;
-			SetLayeredWindowAttributes(hDlg, 0, (BYTE)mp->transparent_, LWA_ALPHA);
+			::SetLayeredWindowAttributes(hDlg, 0, (BYTE)mp->transparent_, LWA_ALPHA);
 			if (mp->transparent_ > 160)
 			{
-				KillTimer(hDlg, 1);
-				SetTimer(hDlg, 2, mp->time_, 0);
+				::KillTimer(hDlg, 1);
+				::SetTimer(hDlg, 2, mp->time_, 0);
 			}
 		}
 		else if (wParam == 2)
 		{
-			KillTimer(hDlg, 2);
-			SetTimer(hDlg, 3, 20, 0);
+			::KillTimer(hDlg, 2);
+			::SetTimer(hDlg, 3, 20, 0);
 		}
 		else if (wParam == 3)
 		{
 			mp->transparent_ -= 40;
 			if (mp->transparent_ < 0)
 			{
-				KillTimer(hDlg, 3);
-				DestroyWindow(hDlg);
+				::KillTimer(hDlg, 3);
+				::SetWindowLongPtr(hDlg, GWLP_USERDATA,0);
+				::DestroyWindow(hDlg);
+				delete mp;
 				return 0;
 			}
-			SetLayeredWindowAttributes(hDlg, 0, (BYTE)mp->transparent_, LWA_ALPHA);
+			::SetLayeredWindowAttributes(hDlg, 0, (BYTE)mp->transparent_, LWA_ALPHA);
 		}
 
 		return 0;
 				  }
-	case WM_DESTROY:{
-		PopMsgStruct * mp = (PopMsgStruct *)::GetWindowLongPtr(hDlg, GWLP_USERDATA);
-		if (mp)
-			delete mp;
-		return 0; }
 	case WM_PAINT:{
 		PAINTSTRUCT ps;
 		HDC hdc = ::BeginPaint(hDlg, &ps);

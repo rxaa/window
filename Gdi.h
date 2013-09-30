@@ -31,9 +31,9 @@ namespace sdf
 
 		static COLORREF AddColor(COLORREF rgb, int value)
 		{
-			int r=(rgb & 0xFF) * value /128 ;
-			int g=((rgb>>8) & 0xFF) * value / 128;
-			int b=((rgb>>16) & 0xFF) * value / 128;
+			int r = (rgb & 0xFF) * value / 128;
+			int g = ((rgb >> 8) & 0xFF) * value / 128;
+			int b = ((rgb >> 16) & 0xFF) * value / 128;
 			return RGB(r, g, b);
 		}
 	};
@@ -90,7 +90,7 @@ namespace sdf
 		}
 	private:
 		Pen(const Pen &);
-		Pen& operator=(const Pen &) ;
+		Pen& operator=(const Pen &);
 	};
 
 	class Brush
@@ -157,7 +157,7 @@ namespace sdf
 
 	private:
 		Brush(const Brush &);
-		Brush& operator=(const Brush &) ;
+		Brush& operator=(const Brush &);
 
 	};
 
@@ -181,7 +181,7 @@ namespace sdf
 		: public Hdc
 	{
 	public:
-		Gdi(HDC dc=NULL)
+		Gdi(HDC dc = NULL)
 			: Hdc(dc)
 		{
 		}
@@ -211,7 +211,7 @@ namespace sdf
 
 		inline void Init(Control * cont)
 		{
-			MY_ASSERT(cont!=nullptr);
+			MY_ASSERT(cont != nullptr);
 			hdc_ = ::GetDC(cont->GetHandle());
 		}
 
@@ -228,6 +228,11 @@ namespace sdf
 		inline HDC GetDc() const
 		{
 			return hdc_;
+		}
+
+		inline bool SetObject(HGDIOBJ obj)
+		{
+			return ::SelectObject(hdc_, obj) != NULL;
 		}
 
 		inline bool SetPen(Pen & pen)
@@ -250,6 +255,13 @@ namespace sdf
 			return ::SelectObject(hdc_, bru) != NULL;
 		}
 
+		inline uint GetTextPixel(const CC & str)
+		{
+			SIZE wid;
+			GetTextExtentPoint32(hdc_, str.char_, str.length_, &wid);
+			return wid.cx;
+		}
+
 		///Êä³öÎÄ×Ö
 		inline BOOL Txt(int x, int y, const CC & str) const
 		{
@@ -269,9 +281,9 @@ namespace sdf
 
 		inline void SetTextColor(COLORREF cc) const
 		{
-			::SetTextColor (hdc_, cc);
+			::SetTextColor(hdc_, cc);
 		}
-		
+
 
 		//ÎÄ×Ö±³¾°É«
 		inline BOOL SetTextBackColor(COLORREF cc) const
@@ -299,9 +311,9 @@ namespace sdf
 		}
 
 		//»­¾ØÐÎ
-		static inline BOOL Rect(Hdc dc,int leftx,int topx,int rightx,int boty)
+		static inline BOOL Rect(Hdc dc, int leftx, int topx, int rightx, int boty)
 		{
-			return ::Rectangle(dc.GetDc(),leftx, topx, rightx, boty);
+			return ::Rectangle(dc.GetDc(), leftx, topx, rightx, boty);
 		}
 
 		//ÍÖÔ²
@@ -342,11 +354,13 @@ namespace sdf
 		}
 
 		//Í¸Ã÷ÌùÍ¼
-		inline BOOL DrawTransparentFrom(Hdc toGdi, int toX, int toY, int toW, int toH, int fromW, int fromH, int fromX, int fromY, uint col) const
+		inline BOOL DrawTransparentFrom(Hdc fromGdi, int toX, int toY, int toW, int toH, int fromW, int fromH, int fromX, int fromY, uint col) const
 		{
 			return ::TransparentBlt(hdc_, toX, toY, toW, toH,
-				toGdi.GetDc(), fromX, fromY, fromW, fromH, col);
+				fromGdi.GetDc(), fromX, fromY, fromW, fromH, col);
 		}
+
+
 
 	private:
 		Gdi(const Gdi & gdi);

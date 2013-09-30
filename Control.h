@@ -49,9 +49,9 @@ namespace sdf
 
 		Control(Control && r)
 		{
-			handle_=r.handle_;
-			resourceID_=r.resourceID_;
-			r.handle_=0;
+			handle_ = r.handle_;
+			resourceID_ = r.resourceID_;
+			r.handle_ = 0;
 		}
 		virtual ~Control()
 		{
@@ -59,7 +59,7 @@ namespace sdf
 		}
 
 		//在鼠标位置弹出菜单
-		bool PopMenu(int menuId,WinHandle hWnd);
+		bool PopMenu(int menuId, WinHandle hWnd);
 
 		inline void ReleaseUserData()
 		{
@@ -68,7 +68,7 @@ namespace sdf
 				::SetWindowLongPtr(handle_, GWLP_USERDATA, 0);
 				handle_ = 0;
 			}
-				
+
 		}
 
 		inline static Control * GetUserData(HWND wnd)
@@ -122,7 +122,7 @@ namespace sdf
 		{
 			MY_ASSERT(handle_ != NULL);
 			MY_ASSERT(val >= 0);
-			::SendMessage(handle_ ,PBM_SETPOS ,static_cast<WPARAM>(val), 0);
+			::SendMessage(handle_, PBM_SETPOS, static_cast<WPARAM>(val), 0);
 		}
 
 		void SetActive()
@@ -144,6 +144,7 @@ namespace sdf
 			return text;
 		}
 
+
 		void GetText(SS & text) const
 		{
 			MY_ASSERT(handle_ != NULL);
@@ -162,6 +163,15 @@ namespace sdf
 			::SendMessage(handle_, EM_SETLIMITTEXT, nMax, 0);
 		}
 
+		void SetBitmap(HBITMAP hBitmap)
+		{
+			::SendMessage(handle_, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBitmap);
+		}
+		HBITMAP GetBitmap() const
+		{
+			return (HBITMAP)::SendMessage(handle_, STM_GETIMAGE, IMAGE_BITMAP, 0L);
+		}
+
 		void Message(const CC & con, const CC & tit = tcc_("消息"))
 		{
 			MessageBox(handle_, con.char_, tit.char_, MB_ICONINFORMATION);
@@ -169,7 +179,7 @@ namespace sdf
 
 		bool MessageOK(const CC & con, const CC & tit = tcc_("消息"))
 		{
-			return MessageBox(handle_, con.char_, tit.char_, MB_OKCANCEL | MB_ICONQUESTION)==IDOK;
+			return MessageBox(handle_, con.char_, tit.char_, MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
 		}
 
 		void MessageERR(const CC & con, const CC & tit = tcc_("错误"))
@@ -186,18 +196,18 @@ namespace sdf
 			return true;
 		}
 
-		virtual bool ControlNotify(LPNMHDR )
+		virtual bool ControlNotify(LPNMHDR)
 		{
 			return true;
 		}
-	
+
 
 	protected:
 
 
 	private:
-		Control(const Control & );
-		Control& operator=(const Control & );
+		Control(const Control &);
+		Control& operator=(const Control &);
 
 	};
 
@@ -226,7 +236,7 @@ namespace sdf
 		return ::SetWindowPos(handle.handle_, 0, x, y, w, h, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOACTIVATE);
 	}
 
-	
+
 
 	//使用智能指针创建托管窗口
 	template<class T>
@@ -242,8 +252,8 @@ namespace sdf
 #include "Font.h"
 
 #include "Gdi.h"
-#include "Bitmap.h"
 #include "gdiP.h"
+#include "Bitmap.h"
 
 
 #include "Button.h"
