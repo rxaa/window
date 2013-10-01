@@ -336,7 +336,7 @@ struct PopMsgStruct
 	sdf::Font font_;
 };
 
-void sdf::Window::PopMessage(const CC & msg,int time)
+void sdf::Window::PopMessage(const CC & msg, int time)
 {
 	const TCHAR * szAppName = tt_("_PopMessage");
 	static bool isReg = true;
@@ -394,7 +394,12 @@ LRESULT  __stdcall sdf::Window::PopMessageProc(HWND hDlg, uint message, WPARAM w
 	{
 	case WM_CREATE:
 		// 设置分层属性 
-		::SetTimer(hDlg, 1, 20, 0);
+		if (::SetTimer(hDlg, 1, 20, 0) == 0)
+		{
+			PopMsgStruct * mp = (PopMsgStruct *)::GetWindowLongPtr(hDlg, GWLP_USERDATA);
+			delete mp;
+			return 0;
+		}
 		SetWindowLongPtr(hDlg, GWL_EXSTYLE, GetWindowLongPtr(hDlg, GWL_EXSTYLE) | WS_EX_LAYERED);
 		// 设置透明度 0 - completely transparent   255 - opaque  
 		::SetLayeredWindowAttributes(hDlg, 0, 0, LWA_ALPHA);
@@ -426,7 +431,7 @@ LRESULT  __stdcall sdf::Window::PopMessageProc(HWND hDlg, uint message, WPARAM w
 			if (mp->transparent_ < 0)
 			{
 				::KillTimer(hDlg, 3);
-				::SetWindowLongPtr(hDlg, GWLP_USERDATA,0);
+				::SetWindowLongPtr(hDlg, GWLP_USERDATA, 0);
 				::DestroyWindow(hDlg);
 				delete mp;
 				return 0;
@@ -926,4 +931,115 @@ std::function<void()> & sdf::Tray::OnRightClick()
 {
 	static std::function<void()> func = [](){};
 	return func;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+bool sdf::Bitmap::Load(const CC & name)
+{
+	const WCHAR * wName = (const WCHAR *)name.char_;
+#ifndef UNICODE
+	SSw wStr = df::AnsiToWide(name);
+	wName = wStr.GetBuffer();
+#endif // !UNICODE
+
+	Gdiplus::Image * img = new Gdiplus::Image(wName);
+	ON_EXIT({
+		delete img;
+	});
+
+	if (img == nullptr || img->GetLastStatus() != Gdiplus::Ok)
+	{
+		ERR(name << tcc_(" Gdiplus Load Image failed!"));
+		return false;
+	}
+
+	if (CreateDib(img->GetWidth(), img->GetHeight()) == nullptr)
+		return false;
+
+	Gdiplus::Graphics g(hdc_);
+	g.DrawImage(img, 0, 0, width_, height_);
+	return true;
+
+}
+
+
+bool sdf::Bitmap::Load(int id, const CC & resType /*= tcc_("png")*/)
+{
+	HRSRC hRsrc = ::FindResource(df::Global::progressInstance_, MAKEINTRESOURCE(id), resType.char_);
+	if (!hRsrc)
+	{
+		ERR(tcc_("FindResource failed"))
+			return false;
+	}
+	// load resource into memory  
+	DWORD len = ::SizeofResource(df::Global::progressInstance_, hRsrc);
+	HGLOBAL lpRsrc = ::LoadResource(df::Global::progressInstance_, hRsrc);
+	ON_EXIT({
+		::FreeResource(lpRsrc);
+	});
+
+	///重新申请一块内存
+	HGLOBAL m_hMem = GlobalAlloc(GMEM_FIXED, len);
+	BYTE* pmem = (BYTE*)GlobalLock(m_hMem);
+	memcpy(pmem, lpRsrc, len);
+
+	IStream* pstm;
+	CreateStreamOnHGlobal(m_hMem, FALSE, &pstm);
+	// load from stream  
+	Gdiplus::Image * img = Gdiplus::Image::FromStream(pstm);
+	ON_EXIT({
+		delete img;
+		::GlobalUnlock(m_hMem);
+		pstm->Release();
+		::GlobalFree(m_hMem);
+	});
+
+	if (img == nullptr || img->GetLastStatus() != Gdiplus::Ok)
+	{
+		ERR(id << tcc_(" Gdiplus Load Image failed! type:") << resType);
+		return false;
+	}
+
+	if (CreateDib(img->GetWidth(), img->GetHeight()) == nullptr)
+		return false;
+
+	Gdiplus::Graphics g(hdc_);
+	g.DrawImage(img, 0, 0, width_, height_);
+
+	return true;
+}
+
+char * sdf::Bitmap::CreateDib(int w, int h)
+{
+	Init();
+	////////////////////
+	BITMAPINFO info = { { 0 } };
+	info.bmiHeader.biSize = sizeof(info.bmiHeader);
+	info.bmiHeader.biWidth = w;
+	//info.bmiHeader.biHeight        = h;
+	info.bmiHeader.biHeight = -h;
+	info.bmiHeader.biPlanes = 1;
+	info.bmiHeader.biBitCount = 32;
+	info.bmiHeader.biCompression = BI_RGB;
+	info.bmiHeader.biSizeImage = w * h * (32 / 8);
+
+	// 创建一块内存纹理并获取其数据指针
+	void* pBits = NULL;
+	img_ = ::CreateDIBSection(hdc_, &info, DIB_RGB_COLORS, &pBits, NULL, 0);
+	if (img_ == 0)
+	{
+		ERR(tcc_("CreateDIBSection failed"));
+		return nullptr;
+	}
+	::SelectObject(hdc_, img_);
+	//DIBSECTION GDIBSection;
+	//::GetObject(img_ , sizeof(DIBSECTION), &GDIBSection);
+
+	width_ = w;
+	height_ = h;
+	//这里指向图像的内存区域
+	//return (char *)GDIBSection.dsBm.bmBits;
+	imgBuf_ = (char*)pBits;
+	return imgBuf_;
 }
