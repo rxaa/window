@@ -21,6 +21,8 @@ namespace sdf
 		~Tray(void)
 		{
 			RemoveIcon();
+			OnLeftClick() = []{};
+			OnRightClick() = []{};
 		}
 		NOTIFYICONDATA  m_tnd;
 

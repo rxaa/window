@@ -34,11 +34,7 @@ namespace sdf
 			return parentIndex_;
 		}
 
-		//获取id选框状态
-		BOOL GetCheck()
-		{
-			return  (BOOL)SendMessage (handle_, BM_GETCHECK, 0, 0) ;
-		}
+
 		///设置选中状态
 		void SetCheck(BOOL Check);
 

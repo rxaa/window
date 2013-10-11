@@ -135,6 +135,17 @@ namespace sdf
 			::SetFocus(handle_);
 		}
 
+		//»ñÈ¡idÑ¡¿ò×´Ì¬
+		bool GetCheck()
+		{
+			return SendMessage(handle_, BM_GETCHECK, 0, 0)==1;
+		}
+
+		void SetCheck(BOOL Check)
+		{
+			SendMessage(handle_, BM_SETCHECK, Check, 0);
+		}
+
 		SS GetText() const
 		{
 			MY_ASSERT(handle_ != NULL);
