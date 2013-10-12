@@ -40,8 +40,6 @@ namespace sdf
 		inline BOOL SetSelectIndex(int index)
 		{
 			MY_ASSERT(index >= 0 && index < Count());
-			if (onSelectChange_)
-				onSelectChange_();
 			return (BOOL) SendMessage(handle_, CB_SETCURSEL, index, 0) + 1;
 		}
 

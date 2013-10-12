@@ -59,7 +59,7 @@ namespace sdf
 		}
 
 		//在鼠标位置弹出菜单
-		bool PopMenu(int menuId, WinHandle hWnd);
+		static bool PopMenu(int menuId, WinHandle hWnd);
 
 		inline void ReleaseUserData()
 		{
@@ -116,6 +116,11 @@ namespace sdf
 
 		static inline BOOL SetPos(WinHandle handle, int x, int y, int w, int h);
 
+		inline void SetLimitText(int maxLen)
+		{
+			MY_ASSERT(handle_ != NULL);
+			::SendMessage(handle_, EM_SETLIMITTEXT, maxLen, 0);
+		}
 
 		//设置滚动条
 		inline void SetProgressPos(int val)

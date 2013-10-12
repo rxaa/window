@@ -12,12 +12,6 @@ namespace sdf
 		std::function<void()> onFocus_;
 		std::function<void()> onLeave_;
 
-		void SetLimitText(int maxLen)
-		{
-			MY_ASSERT(handle_ != NULL);
-			::SendMessage(handle_, EM_SETLIMITTEXT, maxLen, 0);
-		}
-
 	protected:
 		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
 	};

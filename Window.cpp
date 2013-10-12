@@ -793,13 +793,6 @@ bool sdf::ComBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM)
 
 ///////////////////////////////ChoiceItem///////////////////////////////////////////
 
-void sdf::ChoiceItem::SetCheck(BOOL Check)
-{
-	SendMessage(handle_, BM_SETCHECK, Check, 0);
-	if (parentBox_.onClick_)
-		parentBox_.onClick_(parentIndex_);
-}
-
 bool sdf::ChoiceItem::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM)
 {
 	if (msg == WM_COMMAND)

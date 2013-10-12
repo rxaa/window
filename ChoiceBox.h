@@ -34,23 +34,6 @@ namespace sdf
 			return parentIndex_;
 		}
 
-
-		///…Ë÷√—°÷–◊¥Ã¨
-		void SetCheck(BOOL Check);
-
-		void * operator new(size_t size)
-		{
-			UNREFERENCED_PARAMETER(size);
-			MY_ASSERT(size == sizeof(ChoiceItem));
-
-			return sdf::MemPool<ChoiceItem>::Alloc(1).char_;
-		}
-		void operator delete(void * p, size_t size)
-		{
-			UNREFERENCED_PARAMETER(size);
-			MY_ASSERT(size == sizeof(ChoiceItem));
-			sdf::MemPool<ChoiceItem>::Free((ChoiceItem*)p, 1);
-		}
 	protected:
 
 		bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
@@ -85,8 +68,6 @@ namespace sdf
 			MY_ASSERT(index<itemList.Size());
 			for(int i=0;i<itemList.Size();i++)
 				SendMessage(itemList[i]->handle_, BM_SETCHECK, (i==index), 0);
-			if(onClick_)
-				onClick_(index);
 		}
 
 		ChoiceItem & operator[](int i)
