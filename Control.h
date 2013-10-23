@@ -127,7 +127,7 @@ namespace sdf
 		{
 			MY_ASSERT(handle_ != NULL);
 			MY_ASSERT(val >= 0);
-			::SendMessage(handle_, PBM_SETPOS, static_cast<WPARAM>(val), 0);
+			::PostMessage(handle_, PBM_SETPOS, static_cast<WPARAM>(val), 0);
 		}
 
 		void SetActive()

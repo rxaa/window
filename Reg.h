@@ -18,17 +18,17 @@ namespace df
 	public:
 		enum
 		{
-			KeyBinary = REG_BINARY
-			, KeyDWORD = REG_DWORD
-			, KeyString = REG_SZ
+			KeyBinary = REG_BINARY,
+			KeyDWORD = REG_DWORD,
+			KeyString = REG_SZ,
 		};
 
-		Reg(const sdf::CC & menu = tcc_("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"), HKEY root = HKEY_CURRENT_USER)
+		Reg(const sdf::CC & menu = tcc_("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"), HKEY root = HKEY_CURRENT_USER, DWORD access = KEY_ALL_ACCESS)
 		{
-			if (RegOpenKeyEx(root, menu.char_, 0, KEY_ALL_ACCESS, &key_) != ERROR_SUCCESS)
+			if (RegOpenKeyEx(root, menu.char_, 0, access, &key_) != ERROR_SUCCESS)
 			{
 				key_ = 0;
-				ERR(tcc_("RegOpenKeyEx failed.menu=") + menu + tcc_(" root=") + (intptr_t)HKEY_CURRENT_USER)
+				ERR(tcc_("RegOpenKeyEx failed.menu=") + menu + tcc_(" root=") + (intptr_t)HKEY_CURRENT_USER + tcc_(" access=") + access)
 			}
 		}
 
