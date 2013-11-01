@@ -1,4 +1,4 @@
-#ifndef ListBox_h__2013_8_1__19_52
+ï»¿#ifndef ListBox_h__2013_8_1__19_52
 #define ListBox_h__2013_8_1__19_52
 
 namespace sdf
@@ -21,24 +21,24 @@ namespace sdf
 			SendMessage(handle_, LB_RESETCONTENT, 0, 0);
 		}
 
-		//Í³¼Æ¸öÊý
+		//ç»Ÿè®¡ä¸ªæ•°
 		inline int Count()
 		{
 			MY_ASSERT(handle_ != NULL);
 			return (int) SendMessage(handle_, LB_GETCOUNT, 0, 0);
 		}
-		//É¾³ýindex
+		//åˆ é™¤index
 		inline BOOL Delete(int Index)
 		{
 			MY_ASSERT(Index >= 0 && Index < Count());
 			return (BOOL) SendMessage(handle_, LB_DELETESTRING, Index, 0) + 1;
 		}
 
-		//»ñÈ¡Ñ¡ÖÐµÄindex
+		//èŽ·å–é€‰ä¸­çš„index
 		int GetSelectIndex()
 		{
 			MY_ASSERT(handle_ != NULL);
-			return (int) SendMessage(handle_, LB_GETCURSEL, 0, 0); //»ñÈ¡Ñ¡ÖÐÖµ
+			return (int) SendMessage(handle_, LB_GETCURSEL, 0, 0); //èŽ·å–é€‰ä¸­å€¼
 		}
 
 		inline BOOL SetSelectIndex(int index)
@@ -60,25 +60,25 @@ namespace sdf
 			return i;
 		}
 
-		//»ñÈ¡indexµÄ×Ö·û´®ÄÚÈÝ
+		//èŽ·å–indexçš„å­—ç¬¦ä¸²å†…å®¹
 		SS GetIndexText(int Index)
 		{
 			MY_ASSERT(Index >= 0 && Index < Count());
 			int len = (int) SendMessage(handle_, LB_GETTEXTLEN, Index, 0) + 1;
 			SS str(len + 1);
-			len = SendMessage(handle_, LB_GETTEXT, Index, (LPARAM) str.GetBuffer());//ÌáÈ¡Ñ¡ÖÐ×Ö·û
+			len = SendMessage(handle_, LB_GETTEXT, Index, (LPARAM) str.GetBuffer());//æå–é€‰ä¸­å­—ç¬¦
 			if (len > 0)
 				str.strLength_ = len;
 			return std::move(str);
 		}
 
-		//»ñÈ¡indexµÄ×Ö·û´®ÄÚÈÝ
+		//èŽ·å–indexçš„å­—ç¬¦ä¸²å†…å®¹
 		void GetIndexText(int Index, SS & str)
 		{
 			MY_ASSERT(Index >= 0 && Index < Count());
 			int len = (int) SendMessage(handle_, LB_GETTEXTLEN, Index, 0) + 1;
 			str.SetBufSizeNoCopy(len + 1);
-			len = SendMessage(handle_, LB_GETTEXT, Index, (LPARAM) str.GetBuffer());//ÌáÈ¡Ñ¡ÖÐ×Ö·û
+			len = SendMessage(handle_, LB_GETTEXT, Index, (LPARAM) str.GetBuffer());//æå–é€‰ä¸­å­—ç¬¦
 			if (len > 0)
 				str.strLength_ = len;
 		}

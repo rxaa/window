@@ -1,4 +1,4 @@
-#ifndef Button_h__2013_8_1__14_27
+ï»¿#ifndef Button_h__2013_8_1__14_27
 #define Button_h__2013_8_1__14_27
 
 namespace sdf
@@ -6,16 +6,16 @@ namespace sdf
 	class Button
 		: public Control
 	{
-		//»æÍ¼»Øµ÷
+		//ç»˜å›¾å›è°ƒ
 		typedef void (*DrawCallBack)(Button & but);
 		static void DefaultDraw(Button & but, DWORD normal, DWORD hover);
 	public:
-		//°´Å¥´óĞ¡
+		//æŒ‰é’®å¤§å°
 		RECT buttonRect_;
 		Gdi buttonGdi_;
 		//HDC butDc_;
 
-		//°´Å¥×´Ì¬
+		//æŒ‰é’®çŠ¶æ€
 		enum
 		{
 			StateNormal = 0
@@ -26,17 +26,17 @@ namespace sdf
 		bool isFocused_;
 		bool isDisable_;
 
-		//ÊÂ¼ş
+		//äº‹ä»¶
 		std::function<void()> onClick_;
-		//È«¾Ö»æÍ¼»º³å
+		//å…¨å±€ç»˜å›¾ç¼“å†²
 		static Bitmap buttonBmp_;
 		static char * buttonBmpBuf_;
 
 
 		DrawCallBack onDraw_;
 
-		//ÑÕÉ«(ARGB)
-		//ÄÚ´æ:(BGRA)
+		//é¢œè‰²(ARGB)
+		//å†…å­˜:(BGRA)
 		static const DWORD blueColor_ = 0xFF4192E1;
 		static const DWORD blueHoverColor_ = 0xFF1B80E4;
 		static const DWORD orangeColor_ = 0xFFE19241;
@@ -75,7 +75,7 @@ namespace sdf
 
 		}
 
-		///ÓÃ×ÊÔ´±êÊ¶·û³õÊ¼»¯
+		///ç”¨èµ„æºæ ‡è¯†ç¬¦åˆå§‹åŒ–
 		void Init(int id);
 
 	protected:

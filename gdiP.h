@@ -1,4 +1,4 @@
-#ifndef gdiP_h__2013_9_5__16_57
+﻿#ifndef gdiP_h__2013_9_5__16_57
 #define gdiP_h__2013_9_5__16_57
 
 #include <gdiplus.h>

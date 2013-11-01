@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+Ôªø#include "StdAfx.h"
 
 #include "Control.h"
 
@@ -76,7 +76,7 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, uint message, WPARAM wParam, 
 {
 	try
 	{
-		///ªÒ»°¥∞ø⁄∂‘œÛ÷∏’Î
+		///Ëé∑ÂèñÁ™óÂè£ÂØπË±°ÊåáÈíà
 
 		Window * winP = (Window *)GetUserData(hDlg);
 		if (winP == nullptr)
@@ -138,7 +138,7 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, uint message, WPARAM wParam, 
 		case WM_MOUSEMOVE:
 			{
 				GetMousePos(lParam);
-				// Û±Í“∆≥ˆøÿº˛
+				//Èº†Ê†áÁßªÂá∫Êéß‰ª∂
 				if (mouseHandle_)
 				{
 					Button * bp = (Button *)GetUserData(mouseHandle_);
@@ -146,12 +146,12 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, uint message, WPARAM wParam, 
 						return TRUE;
 
 					bp->buttonState = Button::StateNormal;
-					// Û±Í¿Îø™ªÊÕº
+					//Èº†Ê†áÁ¶ªÂºÄÁªòÂõæ
 					if (bp->onDraw_)
 					{
 						//RECT itemRect;
 						//GetClientRect(WinVar::mouseHandle_, &itemRect); 
-						//ºÏ≤‚∞¥≈• «∑ÒΩ˚”√
+						//Ê£ÄÊµãÊåâÈíÆÊòØÂê¶Á¶ÅÁî®
 						//BOOL bIsDisabled=IsWindowEnabled(WinVar::mouseHandle_);
 						(bp->onDraw_)(*bp);
 					}
@@ -186,7 +186,7 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, uint message, WPARAM wParam, 
 			//case WM_ERASEBKGND:
 		case WM_DRAWITEM:
 			{
-				//…˘√˜“ª∏ˆ÷∏œÚDRAWITEMSTRUCTΩ·ππÃÂµƒ÷∏’Î≤¢Ω´∆‰÷∏œÚ¥Ê¥¢◊≈∞¥≈•ππ‘Ï–≈œ¢µƒlParam
+				//Â£∞Êòé‰∏Ä‰∏™ÊåáÂêëDRAWITEMSTRUCTÁªìÊûÑ‰ΩìÁöÑÊåáÈíàÂπ∂Â∞ÜÂÖ∂ÊåáÂêëÂ≠òÂÇ®ÁùÄÊåâÈíÆÊûÑÈÄ†‰ø°ÊÅØÁöÑlParam
 				LPDRAWITEMSTRUCT lpDIS = (LPDRAWITEMSTRUCT)lParam;
 				Control * controlP = GetUserData(lpDIS->hwndItem);
 				if (controlP)
@@ -195,11 +195,11 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, uint message, WPARAM wParam, 
 						}
 		case Tray::TRAY_MESSAGE:
 			//cout<<"hwnd:"<<(int)hDlg<<endl;
-			if (LOWORD(lParam) == WM_RBUTTONUP) //”“º¸≤Àµ•
+			if (LOWORD(lParam) == WM_RBUTTONUP) //Âè≥ÈîÆËèúÂçï
 			{
 				Tray::OnRightClick()();
 			}
-			else if (LOWORD(lParam) == WM_LBUTTONUP) //◊Ûº¸œ‘ æ¥∞ø⁄
+			else if (LOWORD(lParam) == WM_LBUTTONUP) //Â∑¶ÈîÆÊòæÁ§∫Á™óÂè£
 			{
 				Tray::OnLeftClick()();
 			}
@@ -325,7 +325,7 @@ HBRUSH sdf::Window::OnDrawBackground()
 
 void sdf::Window::OnPaint()
 {
-	//COUT(L"÷ÿªÊ");
+	//COUT(L"ÈáçÁªò");
 }
 
 struct PopMsgStruct
@@ -351,7 +351,7 @@ void sdf::Window::PopMessage(const CC & msg, int time)
 		wndclass.hInstance = df::Global::progressInstance_;
 		wndclass.hIcon = LoadIcon(NULL, IDI_APPLICATION);;
 		wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
-		wndclass.hbrBackground = Brush::GetBlackBrush();//¥∞ø⁄±≥”∞ª≠À¢Œ™ø’
+		wndclass.hbrBackground = Brush::GetBlackBrush();//Á™óÂè£ËÉåÂΩ±ÁîªÂà∑‰∏∫Á©∫
 		wndclass.lpszMenuName = NULL;
 		wndclass.lpszClassName = szAppName;
 
@@ -393,7 +393,7 @@ LRESULT  __stdcall sdf::Window::PopMessageProc(HWND hDlg, uint message, WPARAM w
 	switch (message)
 	{
 	case WM_CREATE:
-		// …Ë÷√∑÷≤„ Ù–‘ 
+		// ËÆæÁΩÆÂàÜÂ±ÇÂ±ûÊÄß 
 		if (::SetTimer(hDlg, 1, 20, 0) == 0)
 		{
 			PopMsgStruct * mp = (PopMsgStruct *)::GetWindowLongPtr(hDlg, GWLP_USERDATA);
@@ -401,7 +401,7 @@ LRESULT  __stdcall sdf::Window::PopMessageProc(HWND hDlg, uint message, WPARAM w
 			return 0;
 		}
 		SetWindowLongPtr(hDlg, GWL_EXSTYLE, GetWindowLongPtr(hDlg, GWL_EXSTYLE) | WS_EX_LAYERED);
-		// …Ë÷√Õ∏√˜∂» 0 - completely transparent   255 - opaque  
+		// ËÆæÁΩÆÈÄèÊòéÂ∫¶ 0 - completely transparent   255 - opaque  
 		::SetLayeredWindowAttributes(hDlg, 0, 0, LWA_ALPHA);
 		return 0;
 
@@ -509,21 +509,21 @@ bool sdf::Control::PopMenu(int menuId, WinHandle hWnd)
 
 ////////////////////////////////Button//////////////////////////////////////////
 
-///”√◊ ‘¥±Í ∂∑˚≥ı ºªØ
+///Áî®ËµÑÊ∫êÊ†áËØÜÁ¨¶ÂàùÂßãÂåñ
 void sdf::Button::Init(int id)
 {
 	Control::Init(id);
-	//…Ë÷√œ˚œ¢¥¶¿Ì∫Ø ˝
+	//ËÆæÁΩÆÊ∂àÊÅØÂ§ÑÁêÜÂáΩÊï∞
 
 	buttonGdi_.Init(handle_);
 	//buttonGdi_.SetPen(Pen::GetWhitePen());
 	//buttonGdi_.SetBrush(BlueBrush_);
 	//buttonGdi_.SetTextColor(Color::white);
-	//Œƒ◊÷±≥æ∞Õ∏√˜
+	//ÊñáÂ≠óËÉåÊôØÈÄèÊòé
 	buttonGdi_.SetTextBackColor();
-	//±≥æ∞Õ∏√˜
+	//ËÉåÊôØÈÄèÊòé
 	//buttonGdi_.SetBrush(Brush::GetNullBrush());
-	// π”√∏∏¥∞ø⁄◊÷ÃÂ
+	//‰ΩøÁî®Áà∂Á™óÂè£Â≠ó‰Ωì
 	::SelectObject(buttonGdi_.GetDc(), Window::GetFont(currentHandle_));
 	buttonPro_ = SetWindowLongPtr(handle_, GWL_WNDPROC, (LONG_PTR)ButtonProc);
 }
@@ -539,7 +539,7 @@ bool sdf::Button::ControlProc(HWND, UINT msg, WPARAM, LPARAM lParam)
 		isDisable_ = (lpDIS->itemState & ODS_DISABLED) > 0;
 
 		//butDc_ = lpDIS->hDC;
-		//∞¥≈•µƒæÿ–Œ«¯”Ú
+		//ÊåâÈíÆÁöÑÁü©ÂΩ¢Âå∫Âüü
 		buttonRect_ = lpDIS->rcItem;
 
 		if (!onDraw_)
@@ -551,10 +551,10 @@ bool sdf::Button::ControlProc(HWND, UINT msg, WPARAM, LPARAM lParam)
 		}
 		else
 		{
-			//‘⁄∞¥≈•ƒ⁄Ãß∆
+			//Âú®ÊåâÈíÆÂÜÖÊä¨Ëµ∑
 			if (mouseHandle_ == lpDIS->hwndItem)
 				buttonState = StateHover;
-			//‘⁄∞¥≈•Õ‚Ãß∆
+			//Âú®ÊåâÈíÆÂ§ñÊä¨Ëµ∑
 			else
 				buttonState = StateNormal;
 		}
@@ -579,7 +579,7 @@ LRESULT  __stdcall sdf::Button::ButtonProc(HWND hDlg, uint message, WPARAM wPara
 	case WM_MOUSEMOVE:
 		{
 			Window::GetMousePos(lParam);
-			// Û±Í“∆»Îøÿº˛
+			//Èº†Ê†áÁßªÂÖ•Êéß‰ª∂
 			if (mouseHandle_ == 0)
 			{
 				Button * bp = (Button *)GetUserData(hDlg);
@@ -587,7 +587,7 @@ LRESULT  __stdcall sdf::Button::ButtonProc(HWND hDlg, uint message, WPARAM wPara
 					break;
 
 				bp->buttonState = StateHover;
-				// Û±Í“∆»ÎªÊÕº
+				//Èº†Ê†áÁßªÂÖ•ÁªòÂõæ
 				if (bp->onDraw_)
 				{
 					//RECT itemRect;
@@ -654,17 +654,17 @@ void sdf::Button::DefaultDraw(Button & but, DWORD normal, DWORD hover)
 				   }
 	case StatePressed:
 		{
-			//ª≠“ı”∞
+			//ÁîªÈò¥ÂΩ±
 			const int shadowSize = 5;
 
-			DWORD col[shadowSize] = { 0 };//Ω•±‰
+			DWORD col[shadowSize] = { 0 };//Ê∏êÂèò
 			for (int i = 1; i <= shadowSize; i++)
 			{
 				col[shadowSize - i] = Color::AddColor(hover, 24 * i);
 			}
 
 
-			//∫·œÚ“ı”∞
+			//Ê®™ÂêëÈò¥ÂΩ±
 			for (int y = 0; y < shadowSize; y++)
 			{
 				for (int i = y; i < w; i++)
@@ -672,7 +672,7 @@ void sdf::Button::DefaultDraw(Button & but, DWORD normal, DWORD hover)
 					buf[y*bufW + i] = col[shadowSize - 1 - y];
 				}
 			}
-			//◊›œÚ
+			//Á∫µÂêë
 			for (int y = 0; y < shadowSize; y++)
 			{
 				for (int i = y; i < h; i++)
@@ -680,7 +680,7 @@ void sdf::Button::DefaultDraw(Button & but, DWORD normal, DWORD hover)
 					buf[y + i*bufW] = col[shadowSize - 1 - y];
 				}
 			}
-			//ª≠æÿ–Œ
+			//ÁîªÁü©ÂΩ¢
 			for (int i = shadowSize; i < h; i++)
 			{
 				for (int y = shadowSize; y < w; y++)
@@ -972,7 +972,7 @@ bool sdf::Bitmap::Load(int id, const CC & resType /*= tcc_("png")*/)
 		::FreeResource(lpRsrc);
 	});
 
-	///÷ÿ–¬…Í«Î“ªøÈƒ⁄¥Ê
+	///ÈáçÊñ∞Áî≥ËØ∑‰∏ÄÂùóÂÜÖÂ≠ò
 	HGLOBAL m_hMem = GlobalAlloc(GMEM_FIXED, len);
 	BYTE* pmem = (BYTE*)GlobalLock(m_hMem);
 	memcpy(pmem, lpRsrc, len);
@@ -1017,7 +1017,7 @@ char * sdf::Bitmap::CreateDib(int w, int h)
 	info.bmiHeader.biCompression = BI_RGB;
 	info.bmiHeader.biSizeImage = w * h * (32 / 8);
 
-	// ¥¥Ω®“ªøÈƒ⁄¥ÊŒ∆¿Ì≤¢ªÒ»°∆‰ ˝æ›÷∏’Î
+	// ÂàõÂª∫‰∏ÄÂùóÂÜÖÂ≠òÁ∫πÁêÜÂπ∂Ëé∑ÂèñÂÖ∂Êï∞ÊçÆÊåáÈíà
 	void* pBits = NULL;
 	img_ = ::CreateDIBSection(hdc_, &info, DIB_RGB_COLORS, &pBits, NULL, 0);
 	if (img_ == 0)
@@ -1031,7 +1031,7 @@ char * sdf::Bitmap::CreateDib(int w, int h)
 
 	width_ = w;
 	height_ = h;
-	//’‚¿Ô÷∏œÚÕºœÒµƒƒ⁄¥Ê«¯”Ú
+	//ËøôÈáåÊåáÂêëÂõæÂÉèÁöÑÂÜÖÂ≠òÂå∫Âüü
 	//return (char *)GDIBSection.dsBm.bmBits;
 	imgBuf_ = (char*)pBits;
 	return imgBuf_;

@@ -1,4 +1,4 @@
-#ifndef Control_h__2013_8_1__9_24
+ï»¿#ifndef Control_h__2013_8_1__9_24
 #define Control_h__2013_8_1__9_24
 
 #include "../df/df.h"
@@ -26,11 +26,11 @@ namespace sdf
 
 		friend class Tray;
 		friend struct WinHandle;
-		//×î½üÒ»´Î´´½¨µÄ´°¿Ú,ÓÃÓÚOnInit
+		//æœ€è¿‘ä¸€æ¬¡åˆ›å»ºçš„çª—å£,ç”¨äºOnInit
 		static THREAD_LOCAL_VAR HWND currentHandle_;
 		static Window * currentWindow_;
 
-		//°´Å¥½¹µã¾ä±ú
+		//æŒ‰é’®ç„¦ç‚¹å¥æŸ„
 		static HWND mouseHandle_;
 		static LONG_PTR buttonPro_;
 
@@ -58,7 +58,7 @@ namespace sdf
 			ReleaseUserData();
 		}
 
-		//ÔÚÊó±êÎ»ÖÃµ¯³ö²Ëµ¥
+		//åœ¨é¼ æ ‡ä½ç½®å¼¹å‡ºèœå•
 		static bool PopMenu(int menuId, WinHandle hWnd);
 
 		inline void ReleaseUserData()
@@ -80,7 +80,7 @@ namespace sdf
 		{
 			return handle_;
 		}
-		///ÓÃ×ÊÔ´±êÊ¶·û³õÊ¼»¯
+		///ç”¨èµ„æºæ ‡è¯†ç¬¦åˆå§‹åŒ–
 		inline void Init(int id)
 		{
 			handle_ = ::GetDlgItem(currentHandle_, id);
@@ -100,14 +100,14 @@ namespace sdf
 			::ShowWindow(handle_, 1);
 		}
 
-		///ÊÇ·ñÆôÓÃ¿Ø¼ş
+		///æ˜¯å¦å¯ç”¨æ§ä»¶
 		inline void Enable(BOOL bo) const
 		{
 			MY_ASSERT(handle_ != NULL);
 			::EnableWindow(handle_, bo);
 		}
 
-		//ÉèÖÃÏÔÊ¾Î»ÖÃ
+		//è®¾ç½®æ˜¾ç¤ºä½ç½®
 		inline BOOL SetPos(int x, int y) const
 		{
 			MY_ASSERT(handle_ != NULL);
@@ -122,7 +122,7 @@ namespace sdf
 			::SendMessage(handle_, EM_SETLIMITTEXT, maxLen, 0);
 		}
 
-		//ÉèÖÃ¹ö¶¯Ìõ
+		//è®¾ç½®æ»šåŠ¨æ¡
 		inline void SetProgressPos(int val)
 		{
 			MY_ASSERT(handle_ != NULL);
@@ -140,7 +140,7 @@ namespace sdf
 			::SetFocus(handle_);
 		}
 
-		//»ñÈ¡idÑ¡¿ò×´Ì¬
+		//è·å–idé€‰æ¡†çŠ¶æ€
 		bool GetCheck()
 		{
 			return SendMessage(handle_, BM_GETCHECK, 0, 0)==1;
@@ -188,23 +188,23 @@ namespace sdf
 			return (HBITMAP)::SendMessage(handle_, STM_GETIMAGE, IMAGE_BITMAP, 0L);
 		}
 
-		void Message(const CC & con, const CC & tit = tcc_("ÏûÏ¢"))
+		void Message(const CC & con, const CC & tit = tcc_("æ¶ˆæ¯"))
 		{
 			MessageBox(handle_, con.char_, tit.char_, MB_ICONINFORMATION);
 		}
 
-		bool MessageOK(const CC & con, const CC & tit = tcc_("ÏûÏ¢"))
+		bool MessageOK(const CC & con, const CC & tit = tcc_("æ¶ˆæ¯"))
 		{
 			return MessageBox(handle_, con.char_, tit.char_, MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
 		}
 
-		void MessageERR(const CC & con, const CC & tit = tcc_("´íÎó"))
+		void MessageERR(const CC & con, const CC & tit = tcc_("é”™è¯¯"))
 		{
 			MessageBox(handle_, con.char_, tit.char_, MB_ICONERROR);
 		}
 
 		//*******************************************
-		// Summary : ·µ»ØfalseÈ¡Ïû´ËÏûÏ¢
+		// Summary : è¿”å›falseå–æ¶ˆæ­¤æ¶ˆæ¯
 		// Returns - bool : 
 		//*******************************************
 		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM)
@@ -254,7 +254,7 @@ namespace sdf
 
 
 
-	//Ê¹ÓÃÖÇÄÜÖ¸Õë´´½¨ÍĞ¹Ü´°¿Ú
+	//ä½¿ç”¨æ™ºèƒ½æŒ‡é’ˆåˆ›å»ºæ‰˜ç®¡çª—å£
 	template<class T>
 	inline df::IntoPtr<T> NewWindow()
 	{

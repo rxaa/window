@@ -1,11 +1,11 @@
-#ifndef Tray_h__2013_9_2__18_04
+ï»¿#ifndef Tray_h__2013_9_2__18_04
 #define Tray_h__2013_9_2__18_04
 
 
 #include <ShellAPI.h>
 namespace sdf
 {
-	///ÍĞÅÌ
+	///æ‰˜ç›˜
 	class Tray
 	{
 	public:
@@ -30,15 +30,15 @@ namespace sdf
 
 		static std::function<void()> & OnRightClick();
 
-		//´´½¨ÈÎÎñÀ¸Í¨Öª,(Í¨ÖªÎÄ×Ö,Í¼±ê×ÊÔ´±êÊ¶·û,ÆøÅİÄÚÈİ,ÆøÅİÍ£ÁôÊ±¼ä)
-		BOOL Init(const CC & szToolTip, uint icon, const CC & szInfo = cct_("³ÌĞòÒÑÆô¶¯!"), int uTimeout = 2000)
+		//åˆ›å»ºä»»åŠ¡æ é€šçŸ¥,(é€šçŸ¥æ–‡å­—,å›¾æ ‡èµ„æºæ ‡è¯†ç¬¦,æ°”æ³¡å†…å®¹,æ°”æ³¡åœç•™æ—¶é—´)
+		BOOL Init(const CC & szToolTip, uint icon, const CC & szInfo = cct_("ç¨‹åºå·²å¯åŠ¨!"), int uTimeout = 2000)
 		{
 			HWND hParent=Control::currentHandle_;
 
 			HICON iconp=::LoadIcon(df::Global::progressInstance_, MAKEINTRESOURCE(icon));
 
 
-			// Ìî³ä NOTIFYICONDATA ½á¹¹
+			// å¡«å…… NOTIFYICONDATA ç»“æ„
 
 			m_tnd.cbSize = sizeof(NOTIFYICONDATA);
 			m_tnd.hWnd   = hParent;
@@ -48,7 +48,7 @@ namespace sdf
 			m_tnd.uCallbackMessage = TRAY_MESSAGE;
 			Sprintf(m_tnd.szTip,128,_T("%s"), szToolTip.char_);
 
-			//ÆøÅİ
+			//æ°”æ³¡
 			if(szInfo[0])
 			{
 				m_tnd.uFlags |= NIF_INFO;
@@ -61,7 +61,7 @@ namespace sdf
 			return Shell_NotifyIcon(NIM_ADD, &m_tnd);
 		}
 
-		//ÒÆ³ıÍ¼±ê
+		//ç§»é™¤å›¾æ ‡
 		void RemoveIcon()
 		{
 			if(m_tnd.uID)

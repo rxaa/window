@@ -1,4 +1,4 @@
-#ifndef Reg_h__2013_10_12__9_06
+﻿#ifndef Reg_h__2013_10_12__9_06
 #define Reg_h__2013_10_12__9_06
 
 namespace df
@@ -91,11 +91,11 @@ namespace df
 			SS name(NameSize);
 			SS data(DateSize);
 			RegKeyValue regVal;
-			for (dwIndex = 0; dwIndex < NameCnt; dwIndex++)    //ö�ټ�ֵ
+			for (dwIndex = 0; dwIndex < NameCnt; dwIndex++)    //枚举键值
 			{
 				DateSize = MaxDateLen + 1;
 				NameSize = NameMaxLen + 1;
-				RegEnumValue(key_, dwIndex, name.GetBuffer(), &NameSize, NULL, &Type,(LPBYTE) data.GetBuffer(), &DateSize);//��ȡ��ֵ
+				RegEnumValue(key_, dwIndex, name.GetBuffer(), &NameSize, NULL, &Type,(LPBYTE) data.GetBuffer(), &DateSize);//读取键值
 				name.strLength_ = NameSize;
 				data.strLength_ = DateSize;
 				regVal.key = name;

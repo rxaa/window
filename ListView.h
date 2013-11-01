@@ -1,4 +1,4 @@
-#ifndef ListView_h__2013_8_11__14_16
+ï»¿#ifndef ListView_h__2013_8_11__14_16
 #define ListView_h__2013_8_11__14_16
 
 #include <commctrl.h>
@@ -12,30 +12,30 @@ namespace sdf
 		int columnCount_;
 		int rowCount_;
 	public:
-		//²ÎÊı:ĞĞ
+		//å‚æ•°:è¡Œ
 		std::function<void(int)> onSelectChange_;
 
 		std::function<void(int)> onDoubleClick_;
 
 		struct Style
 		{
-			//Ñ¡ÖĞÄ³ĞĞÊ¹ÕûĞĞ¸ßÁÁ£¨Ö»ÊÊÓÃÓëreport·ç¸ñµÄlistctrl£©
+			//é€‰ä¸­æŸè¡Œä½¿æ•´è¡Œé«˜äº®ï¼ˆåªé€‚ç”¨ä¸reporté£æ ¼çš„listctrlï¼‰
 			static const int FullRowSelect=LVS_EX_FULLROWSELECT;
-			//Íø¸ñÏß£¨Ö»ÊÊÓÃÓëreport·ç¸ñµÄlistctrl£©
+			//ç½‘æ ¼çº¿ï¼ˆåªé€‚ç”¨ä¸reporté£æ ¼çš„listctrlï¼‰
 			static const int GridLines=LVS_EX_GRIDLINES;
-			//itemÇ°Éú³Écheckbox¿Ø¼ş
+			//itemå‰ç”Ÿæˆcheckboxæ§ä»¶
 			static const int CheckBox=LVS_EX_CHECKBOXES;
 		};
 
-		//Ìí¼ÓÁĞ(±êÌâ,´óĞ¡)
+		//æ·»åŠ åˆ—(æ ‡é¢˜,å¤§å°)
 		bool AddColumn(const CC & name,int size=80)
 		{
 			LVCOLUMN lvc;
 			lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
-			// Ìî³äLVCOLUMN½á¹¹
-			lvc.cx = size;						// ³¤¶È
+			// å¡«å……LVCOLUMNç»“æ„
+			lvc.cx = size;						// é•¿åº¦
 			lvc.iImage = 0;
-			lvc.fmt = LVCFMT_LEFT;	// Ïò×ó¶ÔÆë
+			lvc.fmt = LVCFMT_LEFT;	// å‘å·¦å¯¹é½
 			lvc.pszText = (TCHAR*) name.char_;
 			lvc.iSubItem = columnCount_;
 
@@ -93,28 +93,28 @@ namespace sdf
 			SendMessage(handle_, LVM_SETIMAGELIST, (WPARAM)(LVSIL_SMALL), (LPARAM)(li.GetHandle()));
 		}
 
-		///Ìí¼ÓÏî
+		///æ·»åŠ é¡¹
 		bool AddItem(const CC & name,int imageI=0)
 		{
 			LVITEM lvI={0};
 			lvI.mask = LVIF_TEXT | LVIF_PARAM | LVIF_STATE | LVIF_IMAGE;
-			// Ìî³äLVITEM
+			// å¡«å……LVITEM
 			lvI.state = 0;
 			lvI.stateMask = 0;
 			lvI.iItem = rowCount_;
 			lvI.iImage = imageI;
 			lvI.iSubItem = 0;
-			// ÏîµÄÎÄ±¾ºÍ³¤¶È
+			// é¡¹çš„æ–‡æœ¬å’Œé•¿åº¦
 			lvI.pszText = (TCHAR*) name.char_;
 			//lvI.cchTextMax = lstrlen(lvI.pszText)+1;
-			// ²åÈëÏî
+			// æ’å…¥é¡¹
 			if(ListView_InsertItem(handle_, &lvI) == -1)
 				return false;
 			rowCount_++;
 			return true;
 		}
 
-		///Ìí¼Ó×ÓÏî(ÄÚÈİ,ÁĞºÅ)
+		///æ·»åŠ å­é¡¹(å†…å®¹,åˆ—å·)
 		void AddSubItem(const CC & name,int column)
 		{
 			MY_ASSERT(column>0);
@@ -122,12 +122,12 @@ namespace sdf
 			ListView_SetItemText(handle_ , rowCount_-1 , column , (LPTSTR)name.char_);
 		}
 
-		///Ñ¡ÖĞĞĞºÅ
+		///é€‰ä¸­è¡Œå·
 		int GetSelectIndex()
 		{
 			return ListView_GetSelectionMark(handle_);
 		}
-		//É¾³ıĞĞ
+		//åˆ é™¤è¡Œ
 		bool Delete(int row)
 		{
 			MY_ASSERT(row>=0);
@@ -139,13 +139,13 @@ namespace sdf
 			}
 			return false;
 		}
-		//Ñ¡ÖĞÏî¸öÊı
+		//é€‰ä¸­é¡¹ä¸ªæ•°
 		int GetSelectedCount()
 		{
 			return ListView_GetSelectedCount(handle_);
 		}
 
-		//Ñ¡ÖĞ×´Ì¬
+		//é€‰ä¸­çŠ¶æ€
 		BOOL GetItemState(int id)
 		{
 			MY_ASSERT(id>=0);
@@ -165,7 +165,7 @@ namespace sdf
 			return (BOOL) ::SendMessage(handle_, LVM_SETITEMTEXT, row, (LPARAM)&lvi);
 		}
 
-		///»ñÈ¡indexĞĞ,idÁĞµÄÄÚÈİ
+		///è·å–indexè¡Œ,idåˆ—çš„å†…å®¹
 		sdf::SS GetText(int row,int column)
 		{
 			MY_ASSERT(row>=0);
@@ -208,7 +208,7 @@ namespace sdf
 			return rowCount_;
 		}
 
-		//Çå¿Õ
+		//æ¸…ç©º
 		BOOL Clear()
 		{
 			rowCount_=0;

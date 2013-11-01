@@ -1,4 +1,4 @@
-#ifndef Gdi_h__2013_8_3__10_07
+ï»¿#ifndef Gdi_h__2013_8_3__10_07
 #define Gdi_h__2013_8_3__10_07
 
 
@@ -11,21 +11,21 @@ namespace sdf
 	struct Color
 	{
 		enum{
-			//windows»Ò
+			//windowsç°
 			grey = 0xF0F0F0,
-			//ºÚ
+			//é»‘
 			black = 0x000000,
-			//Éî»Ò
+			//æ·±ç°
 			darkGrey = 0xA0A0A0,
-			//ºìÉ«
+			//çº¢è‰²
 			red = 0x2840ff,
-			//×ÏÉ«
+			//ç´«è‰²
 			purple = 0xFF00FF,
-			//À¶É«
+			//è“è‰²
 			blue = 0xFF9F00,
-			//ÉîÀ¶
+			//æ·±è“
 			barkBlue = 0xFF0000,
-			//°×É«
+			//ç™½è‰²
 			white = 0xFFFFFF
 		};
 
@@ -67,7 +67,7 @@ namespace sdf
 				::DeleteObject(pen_);
 		}
 
-		///¸ü¸Ä»­±ÊÑÕÉ«
+		///æ›´æ”¹ç”»ç¬”é¢œè‰²
 		void SetPen(COLORREF cc, int Psize = 1, int style = PS_SOLID)
 		{
 			ReleasePen();
@@ -121,7 +121,7 @@ namespace sdf
 				::DeleteObject(brush_);
 		}
 
-		///»­Ë¢ÑÕÉ«
+		///ç”»åˆ·é¢œè‰²
 		inline void SetBrush(COLORREF cc)
 		{
 			ReleaseBrush();
@@ -135,7 +135,7 @@ namespace sdf
 			return brush_;
 		}
 
-		//Í¸Ã÷»­Ë¢
+		//é€æ˜ç”»åˆ·
 		static inline HBRUSH GetNullBrush()
 		{
 			return (HBRUSH)::GetStockObject(NULL_BRUSH);
@@ -262,13 +262,13 @@ namespace sdf
 			return wid.cx;
 		}
 
-		///Êä³öÎÄ×Ö
+		///è¾“å‡ºæ–‡å­—
 		inline BOOL Txt(int x, int y, const CC & str) const
 		{
 			return ::TextOut(hdc_, x, y, str.char_, str.length_);
 		}
 
-		///ÏòRECTÖĞÑëÊä³öÎÄ×Öµ¥ĞĞ
+		///å‘RECTä¸­å¤®è¾“å‡ºæ–‡å­—å•è¡Œ
 		inline BOOL Txt(RECT & rect, const CC & str) const
 		{
 			return ::DrawText(hdc_, str.char_, str.length_, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
@@ -285,18 +285,18 @@ namespace sdf
 		}
 
 
-		//ÎÄ×Ö±³¾°É«
+		//æ–‡å­—èƒŒæ™¯è‰²
 		inline BOOL SetTextBackColor(COLORREF cc) const
 		{
 			return ::SetBkColor(hdc_, cc);
 		}
-		//Í¸Ã÷
+		//é€æ˜
 		inline BOOL SetTextBackColor() const
 		{
 			return  ::SetBkMode(hdc_, TRANSPARENT);
 		}
 
-		///»­Ïß
+		///ç”»çº¿
 		inline BOOL Line(int sx, int sy, int ex, int ey) const
 		{
 			::MoveToEx(hdc_, sx, sy, 0);
@@ -304,19 +304,19 @@ namespace sdf
 		}
 
 
-		//»­¾ØĞÎ
+		//ç”»çŸ©å½¢
 		inline BOOL Rect(int left, int top, int right, int bottom) const
 		{
 			return ::Rectangle(hdc_, left, top, right, bottom);
 		}
 
-		//»­¾ØĞÎ
+		//ç”»çŸ©å½¢
 		static inline BOOL Rect(Hdc dc, int leftx, int topx, int rightx, int boty)
 		{
 			return ::Rectangle(dc.GetDc(), leftx, topx, rightx, boty);
 		}
 
-		//ÍÖÔ²
+		//æ¤­åœ†
 		inline BOOL Round(int left, int top, int right, int bottom) const
 		{
 			return ::Ellipse(hdc_, left, top, right, bottom);
@@ -334,26 +334,26 @@ namespace sdf
 
 		inline BOOL DrawStretchTo(Hdc toGdi, int toX, int toY, int toW, int toH, int fromW, int fromH, int fromX = 0, int fromY = 0) const
 		{
-			//  //Í¨¹ıSetStretchBltModeµÄÉèÖÃÄÜÊ¹StretchBltÔÚËõ·ÅÍ¼Ïñ¸ü¼ÓÇåÎú
+			//  //é€šè¿‡SetStretchBltModeçš„è®¾ç½®èƒ½ä½¿StretchBltåœ¨ç¼©æ”¾å›¾åƒæ›´åŠ æ¸…æ™°
 			//SetStretchBltMode(hdc, COLORONCOLOR);
 			return  ::StretchBlt(toGdi.GetDc(), toX, toY, toW, toH, hdc_, fromX, fromY, fromW, fromH, SRCCOPY);
 		}
 
 		inline BOOL DrawStretchFrom(Hdc fromGdi, int toX, int toY, int toW, int toH, int fromW, int fromH, int fromX = 0, int fromY = 0) const
 		{
-			//  //Í¨¹ıSetStretchBltModeµÄÉèÖÃÄÜÊ¹StretchBltÔÚËõ·ÅÍ¼Ïñ¸ü¼ÓÇåÎú
+			//  //é€šè¿‡SetStretchBltModeçš„è®¾ç½®èƒ½ä½¿StretchBltåœ¨ç¼©æ”¾å›¾åƒæ›´åŠ æ¸…æ™°
 			//SetStretchBltMode(hdc, COLORONCOLOR);
 			return  ::StretchBlt(hdc_, toX, toY, toW, toH, fromGdi.GetDc(), fromX, fromY, fromW, fromH, SRCCOPY);
 		}
 
-		//Í¸Ã÷ÌùÍ¼
+		//é€æ˜è´´å›¾
 		inline BOOL DrawTransparentTo(Hdc toGdi, int toX, int toY, int toW, int toH, int fromW, int fromH, int fromX, int fromY, uint col) const
 		{
 			return ::TransparentBlt(toGdi.GetDc(), toX, toY, toW, toH,
 				hdc_, fromX, fromY, fromW, fromH, col);
 		}
 
-		//Í¸Ã÷ÌùÍ¼
+		//é€æ˜è´´å›¾
 		inline BOOL DrawTransparentFrom(Hdc fromGdi, int toX, int toY, int toW, int toH, int fromW, int fromH, int fromX, int fromY, uint col) const
 		{
 			return ::TransparentBlt(hdc_, toX, toY, toW, toH,

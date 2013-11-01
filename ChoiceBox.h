@@ -1,4 +1,4 @@
-#ifndef ChoiceBox_h__2013_8_10__12_26
+ï»¿#ifndef ChoiceBox_h__2013_8_10__12_26
 #define ChoiceBox_h__2013_8_10__12_26
 
 namespace sdf
@@ -28,7 +28,7 @@ namespace sdf
 		{
 		}*/
 
-		///»ñÈ¡ÔÚÈİÆ÷ChoiceBoxÖĞµÄË÷Òı
+		///è·å–åœ¨å®¹å™¨ChoiceBoxä¸­çš„ç´¢å¼•
 		int GetIndex()
 		{
 			return parentIndex_;
@@ -54,14 +54,14 @@ namespace sdf
 			for(int i=0;i<itemList.Count();i++)
 				delete itemList[i];
 		}
-		//¾ä±ú
+		//å¥æŸ„
 		List<ChoiceItem*> itemList;
 		void AddItem(int id)
 		{
 			itemList.Add(new ChoiceItem(*this,id,itemList.Count()));
 		}
 
-		///ÉèÖÃµ¥Ñ¡
+		///è®¾ç½®å•é€‰
 		void SetRadio(int index)
 		{
 			MY_ASSERT(index>=0);

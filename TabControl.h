@@ -1,4 +1,4 @@
-#ifndef TabControl_h__2013_9_2__20_49
+ï»¿#ifndef TabControl_h__2013_9_2__20_49
 #define TabControl_h__2013_9_2__20_49
 
 
@@ -22,7 +22,7 @@ namespace sdf
 		:public Control
 	{
 	protected:
-		//tab¸öÊý
+		//tabä¸ªæ•°
 		int count_;
 		Window * showWindow_;
 		sdf::List<Window*> winList_;
@@ -59,7 +59,7 @@ namespace sdf
 		{
 			if(nItem<0 && nItem>=count_)
 			{
-				BREAK_POINT_MSG("Ë÷Òý³¬·¶Î§");
+				BREAK_POINT_MSG("ç´¢å¼•è¶…èŒƒå›´");
 				return;
 			}
 			int prev=(int)::SendMessage(handle_, TCM_SETCURSEL, nItem, 0L);

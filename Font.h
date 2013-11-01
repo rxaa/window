@@ -1,4 +1,4 @@
-#ifndef Font_h__
+ï»¿#ifndef Font_h__
 #define Font_h__
 
 namespace sdf
@@ -6,7 +6,7 @@ namespace sdf
 	class Font
 	{
 	public:
-		Font(long size = 20, CC name = cct_("ËÎÌå"))
+		Font(long size = 20, CC name = cct_("å®‹ä½“"))
 		{
 			memset(&logFont_, 0, sizeof(LOGFONT));
 			if (name.length_ > 31)
@@ -20,7 +20,7 @@ namespace sdf
 			DeleteObject(font_);
 		}
 
-		HFONT SetFont(long size = 20, CC name = cct_("ËÎÌå"))
+		HFONT SetFont(long size = 20, CC name = cct_("å®‹ä½“"))
 		{
 			memset(&logFont_, 0, sizeof(LOGFONT));
 			

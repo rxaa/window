@@ -1,4 +1,4 @@
-#ifndef Bitmap_h__2013_8_3__12_57
+ï»¿#ifndef Bitmap_h__2013_8_3__12_57
 #define Bitmap_h__2013_8_3__12_57
 
 namespace sdf
@@ -68,8 +68,8 @@ namespace sdf
 
 
 
-		///´´½¨²¢¹ØÁª32Î»ARGBÎ»Í¼
-		//·µ»ØÏñËØÊı¾İÊ×Ö¸Õë(´óĞ¡w*h*4)
+		///åˆ›å»ºå¹¶å…³è”32ä½ARGBä½å›¾
+		//è¿”å›åƒç´ æ•°æ®é¦–æŒ‡é’ˆ(å¤§å°w*h*4)
 		char * CreateDib(int w, int h);
 
 		BOOL Create(int w, int h)
@@ -78,7 +78,7 @@ namespace sdf
 			img_ = ::CreateCompatibleBitmap(GetScreen().GetDc(), w, h);
 			if (img_ == 0)
 			{
-				ERR(_T("CreateCompatibleBitmap´íÎó"));
+				ERR(_T("CreateCompatibleBitmapé”™è¯¯"));
 				return false;
 			}
 			width_ = w;
@@ -127,12 +127,12 @@ namespace sdf
 
 		inline BOOL DrawStretchTo(Hdc toGdi, int toX, int toY, int toW, int toH)
 		{
-			//  //Í¨¹ıSetStretchBltModeµÄÉèÖÃÄÜÊ¹StretchBltÔÚËõ·ÅÍ¼Ïñ¸ü¼ÓÇåÎú
+			//  //é€šè¿‡SetStretchBltModeçš„è®¾ç½®èƒ½ä½¿StretchBltåœ¨ç¼©æ”¾å›¾åƒæ›´åŠ æ¸…æ™°
 			//SetStretchBltMode(hdc, COLORONCOLOR);
 			return  ::StretchBlt(toGdi.GetDc(), toX, toY, toW, toH, hdc_, 0, 0, width_, height_, SRCCOPY);
 		}
 
-		//Í¸Ã÷ÌùÍ¼
+		//é€æ˜è´´å›¾
 		inline BOOL DrawTransparentTo(Hdc toGdi, int toX, int toY, uint col)
 		{
 			return ::TransparentBlt(toGdi.GetDc(), toX, toY, width_, height_,
@@ -148,10 +148,10 @@ namespace sdf
 		inline BOOL DrawAlphaTo(Hdc toGdi, int toX, int toY, int fromW, int fromH, int fromX = 0, int fromY = 0)
 		{
 			BLENDFUNCTION  blendFunction;
-			blendFunction.BlendFlags = 0; //Ã»ÓÃ
-			blendFunction.AlphaFormat = AC_SRC_ALPHA; //AC_SRC_ALPHA±íÊ¾Í¼ÏñÖĞ°üº¬ALPHAÖµ
-			blendFunction.BlendOp = AC_SRC_OVER; //¹Ì¶¨
-			blendFunction.SourceConstantAlpha = 0xFF; //Í¸Ã÷¶È
+			blendFunction.BlendFlags = 0; //æ²¡ç”¨
+			blendFunction.AlphaFormat = AC_SRC_ALPHA; //AC_SRC_ALPHAè¡¨ç¤ºå›¾åƒä¸­åŒ…å«ALPHAå€¼
+			blendFunction.BlendOp = AC_SRC_OVER; //å›ºå®š
+			blendFunction.SourceConstantAlpha = 0xFF; //é€æ˜åº¦
 
 			return ::AlphaBlend(toGdi.GetDc(), toX, toY, fromW, fromH
 				, hdc_, fromX, fromY, fromW, fromH

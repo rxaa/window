@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 namespace sdf
 {
@@ -24,7 +24,7 @@ namespace sdf
 		Window(void);
 		virtual ~Window(void);
 
-		//»ñÈ¡´°¿Ú×ÖÌå
+		//è·å–çª—å£å­—ä½“
 		inline static HFONT GetFont(HWND handle)
 		{
 			return (HFONT)::SendMessage(handle , WM_GETFONT, 0, 0);
@@ -34,7 +34,7 @@ namespace sdf
 		{
 			return GetFont(handle_);
 		}
-		//ÉèÖÃ´°¿ÚÍ¼±ê
+		//è®¾ç½®çª—å£å›¾æ ‡
 		inline static void SetIcon(HWND h , int id)
 		{
 			::SendMessage(h, WM_SETICON, TRUE, (LPARAM)LoadIcon(df::Global::progressInstance_ , MAKEINTRESOURCE(id)) );
@@ -50,16 +50,16 @@ namespace sdf
 			mouseY_=HIWORD (lParam);
 		}
 
-		//³õÊ¼»¯±³¾°Í¼Æ¬
+		//åˆå§‹åŒ–èƒŒæ™¯å›¾ç‰‡
 		static void InitImage(int backGround);
 
-		///·Ç×èÈû,ÏÔÊ¾·ÇÄ£Ì¬¶Ô»°¿ò,parent:¸¸´°¿Ú¾ä±ú,
+		///éé˜»å¡,æ˜¾ç¤ºéæ¨¡æ€å¯¹è¯æ¡†,parent:çˆ¶çª—å£å¥æŸ„,
 		void Open(HWND parent = NULL, bool show = true);
 		void Open(Control & parent, bool show = true)
 		{
 			Open(parent.GetHandle(), show);
 		}
-		//×èÈû,ÏÔÊ¾Ä£Ì¬¶Ô»°¿ò
+		//é˜»å¡,æ˜¾ç¤ºæ¨¡æ€å¯¹è¯æ¡†
 		void OpenModal(HWND parent);
 		void OpenModal(Control & parent)
 		{
@@ -70,16 +70,16 @@ namespace sdf
 			MY_ASSERT(parent!=nullptr);
 			OpenModal(parent->GetHandle());
 		}
-		//¹Ø±Õ´°¿Ú
+		//å…³é—­çª—å£
 		void Close(bool exit = false);
 
-		//ÅĞ¶Ï´°¿ÚÊÇ·ñÒÑ¾­¹Ø±Õ
+		//åˆ¤æ–­çª—å£æ˜¯å¦å·²ç»å…³é—­
 		bool IsClosed()
 		{
 			return handle_ == 0;
 		}
 
-		//ÏÔÊ¾´°¿Ú,²¢¿ªÊ¼ÏûÏ¢Ñ­»·
+		//æ˜¾ç¤ºçª—å£,å¹¶å¼€å§‹æ¶ˆæ¯å¾ªç¯
 		void Run(bool show = true);
 
 		template<class T>
@@ -111,25 +111,25 @@ namespace sdf
 		static void PopMessage(const CC & msg,int time=1200);
 		static LRESULT  __stdcall PopMessageProc(HWND hDlg, uint message, WPARAM wParam, LPARAM lParam);
 
-		//////////////////////////////////ÊÂ¼ş////////////////////////////////////////
+		//////////////////////////////////äº‹ä»¶////////////////////////////////////////
 		virtual void OnInit();
 		virtual HBRUSH OnDrawBackground();
 		virtual void OnPaint();
-		//²ÎÊıÎªture :°´ÏÂ false Ì§Æğ
+		//å‚æ•°ä¸ºture :æŒ‰ä¸‹ false æŠ¬èµ·
 		virtual void OnMouseLeft(bool ){}
 		virtual void OnMouseRight(bool ){}
 
 		virtual void OnTimer(uint){}
 
-		//ÏûÏ¢Ñ­»·
+		//æ¶ˆæ¯å¾ªç¯
 		static void MessageLoop();
 	private:
 		void InitWinData()
 		{
 			gdi_.Init(handle_);
-			//Ê¹ÓÃ¸¸´°¿Ú×ÖÌå
+			//ä½¿ç”¨çˆ¶çª—å£å­—ä½“
 			gdi_.SetObject(GetFont());
-			//ÎÄ×Ö±³¾°Í¸Ã÷
+			//æ–‡å­—èƒŒæ™¯é€æ˜
 			gdi_.SetTextBackColor();
 			try
 			{
@@ -140,10 +140,12 @@ namespace sdf
 		void Release();
 
 	
-		//Ä£Ì¬»¯´°¿ÚÏûÏ¢´¦Àí
+		//æ¨¡æ€åŒ–çª—å£æ¶ˆæ¯å¤„ç†
 		static intptr_t __stdcall ModalProc(HWND hDlg, uint message, WPARAM wParam, LPARAM lParam);
-		//Ä£Ì¬»¯Óë·ÇÄ£Ì¬»°¹²ÓÃ
+		//æ¨¡æ€åŒ–ä¸éæ¨¡æ€è¯å…±ç”¨
 		static intptr_t __stdcall WndProc(HWND hDlg, uint message, WPARAM wParam, LPARAM lParam);
+
+		DISABLE_COPY_ASSIGN(Window);
 	};
 
 
