@@ -11,23 +11,42 @@ namespace sdf
 	{
 	protected:
 		PTR_REF_COUNT;
+		
+		//是否为模态话对话框
 		bool isModal_;
+		
+		//关闭事件
 		std::function<void()> onClose_;
+		
 		Gdi gdi_;
+
+		//标题边框大小
+		int16_t titleHeight_ = 0;
+		
+		//左边框大小
+		int16_t borderSize_ = 0;
+
+		//所有成员控件列表
+		List<Control*> memberList_;
+
 		static Bitmap backGround_;
 		static Brush backBrush_;
-		static int mouseX_ , mouseY_;
+		static int mouseX_, mouseY_;
 
-		std::map<int,std::function<void()>> commandMap_;
+		std::map<int, std::function<void()>> commandMap_;
 	public:
 
 		Window(void);
 		virtual ~Window(void);
 
+		int16_t GetTitleHeight() const { return titleHeight_; }
+
+		int16_t GetBorderSize() const { return borderSize_; }
+
 		//获取窗口字体
 		inline static HFONT GetFont(HWND handle)
 		{
-			return (HFONT)::SendMessage(handle , WM_GETFONT, 0, 0);
+			return (HFONT)::SendMessage(handle, WM_GETFONT, 0, 0);
 		}
 
 		inline HFONT GetFont()
@@ -35,19 +54,19 @@ namespace sdf
 			return GetFont(handle_);
 		}
 		//设置窗口图标
-		inline static void SetIcon(HWND h , int id)
+		inline static void SetIcon(HWND h, int id)
 		{
-			::SendMessage(h, WM_SETICON, TRUE, (LPARAM)LoadIcon(df::Global::progressInstance_ , MAKEINTRESOURCE(id)) );
+			::SendMessage(h, WM_SETICON, TRUE, (LPARAM)LoadIcon(df::Global::progressInstance_, MAKEINTRESOURCE(id)));
 		}
 
 		inline void SetIcon(int id)
 		{
-			::SendMessage(handle_, WM_SETICON, TRUE, (LPARAM)LoadIcon(df::Global::progressInstance_ , MAKEINTRESOURCE(id)) );
+			::SendMessage(handle_, WM_SETICON, TRUE, (LPARAM)LoadIcon(df::Global::progressInstance_, MAKEINTRESOURCE(id)));
 		}
-		inline static void GetMousePos( LPARAM lParam )
+		inline static void GetMousePos(LPARAM lParam)
 		{
-			mouseX_=LOWORD (lParam);
-			mouseY_=HIWORD (lParam);
+			mouseX_ = LOWORD(lParam);
+			mouseY_ = HIWORD(lParam);
 		}
 
 		//初始化背景图片
@@ -67,7 +86,7 @@ namespace sdf
 		}
 		void OpenModal(Control * parent)
 		{
-			MY_ASSERT(parent!=nullptr);
+			MY_ASSERT(parent != nullptr);
 			OpenModal(parent->GetHandle());
 		}
 		//关闭窗口
@@ -85,7 +104,7 @@ namespace sdf
 		template<class T>
 		void AddEvent(int id, T cb)
 		{
-			commandMap_[id]=cb;
+			commandMap_[id] = cb;
 		}
 
 		void SetTimer(uint id, uint time)
@@ -98,6 +117,8 @@ namespace sdf
 			::KillTimer(handle_, id);
 		}
 
+		void AdjustLayout();
+
 		static int GetScreenWidth()
 		{
 			return ::GetSystemMetrics(SM_CXSCREEN);
@@ -108,7 +129,7 @@ namespace sdf
 			return ::GetSystemMetrics(SM_CYSCREEN);
 		}
 
-		static void PopMessage(const CC & msg,int time=1200);
+		static void PopMessage(const CC & msg, int time = 1200);
 		static LRESULT  __stdcall PopMessageProc(HWND hDlg, uint message, WPARAM wParam, LPARAM lParam);
 
 		//////////////////////////////////事件////////////////////////////////////////
@@ -116,13 +137,38 @@ namespace sdf
 		virtual HBRUSH OnDrawBackground();
 		virtual void OnPaint();
 		//参数为ture :按下 false 抬起
-		virtual void OnMouseLeft(bool ){}
-		virtual void OnMouseRight(bool ){}
+		virtual void OnMouseLeft(bool){}
+		virtual void OnMouseRight(bool){}
 
 		virtual void OnTimer(uint){}
 
+		virtual void OnResize()
+		{
+
+		}
+
+		virtual void OnMove()
+		{
+
+		}
+
 		//消息循环
 		static void MessageLoop();
+
+
+		//*******************************************
+		// Summary : 获取边框大小
+		//*******************************************
+		void UpdateBorderSize()
+		{
+			POINT pon;
+			pon.x = posX_;
+			pon.y = posY_;
+			::ScreenToClient(handle_, &pon);
+			titleHeight_ = (int16_t)std::abs(pon.y);
+			borderSize_ = (int16_t)std::abs(pon.x);
+		}
+
 	private:
 		void InitWinData()
 		{
@@ -131,15 +177,24 @@ namespace sdf
 			gdi_.SetObject(GetFont());
 			//文字背景透明
 			gdi_.SetTextBackColor();
+
+			UpdateWinRect();
+			UpdateBorderSize();
+			auto oldWin = parentWindow_;
+			parentWindow_ = this;
 			try
 			{
 				OnInit();
 			}CATCH_SEH;
+
+			parentWindow_ = oldWin;
+
+			AdjustLayout();
 		}
 
 		void Release();
 
-	
+
 		//模态化窗口消息处理
 		static intptr_t __stdcall ModalProc(HWND hDlg, uint message, WPARAM wParam, LPARAM lParam);
 		//模态化与非模态话共用

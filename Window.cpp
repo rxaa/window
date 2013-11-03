@@ -3,6 +3,8 @@
 #include "Control.h"
 
 THREAD_LOCAL_VAR HWND sdf::Control::currentHandle_ = NULL;
+THREAD_LOCAL_VAR sdf::Window * sdf::Control::parentWindow_ = NULL;
+
 sdf::Window * sdf::Control::currentWindow_ = nullptr;
 
 
@@ -25,6 +27,42 @@ int  sdf::Window::mouseX_ = 0;
 ULONG_PTR sdf::Gdip::gdiplusToken_ = 0;
 
 Gdiplus::GdiplusStartupInput sdf::Gdip::gdiplusStartupInput_ = 0;
+
+//////////////////////////////////////////////////////////////////////////
+
+void sdf::Control::UpdateWinRect()
+{
+	RECT rect;
+
+	GetClientRect(handle_, &rect);
+
+	winHeight_ = (int16_t)(rect.bottom);
+	winWidth_ = (int16_t)(rect.right);
+
+
+	::GetWindowRect(handle_, &rect);
+	posX_ = (int16_t)rect.left;
+	posY_ = (int16_t)rect.top;
+
+	if (parentWindow_)
+	{
+		posX_ -= parentWindow_->posX_ + parentWindow_->borderSize_;
+		posY_ -= parentWindow_->posY_ + parentWindow_->titleHeight_;
+	}
+}
+
+void sdf::Control::Init(int id)
+{
+	handle_ = ::GetDlgItem(currentHandle_, id);
+	resourceID_ = id;
+	UpdateWinRect();
+	InitUserData();
+	if (parentWindow_)
+	{
+		parentWindow_->memberList_.Add(this);
+	}
+}
+
 
 ////////////////////////////////Brush//////////////////////////////////////////
 
@@ -159,6 +197,17 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, uint message, WPARAM wParam, 
 				}
 				return TRUE;
 						 }
+		case WM_SIZE: {
+			winP->winWidth_ = LOWORD(lParam);
+			winP->winHeight_ = HIWORD(lParam);
+			winP->OnResize();
+			winP->AdjustLayout();
+			return TRUE; }
+		case WM_MOVE: {
+			winP->posX_ = LOWORD(lParam);
+			winP->posY_ = HIWORD(lParam);
+			winP->OnMove();
+			return TRUE; }
 		case WM_RBUTTONDOWN:
 			winP->OnMouseRight(true);
 			return TRUE;
@@ -211,6 +260,15 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, uint message, WPARAM wParam, 
 			::SetBkMode((HDC)wParam, TRANSPARENT);
 		case WM_CTLCOLORDLG:
 			return (intptr_t)winP->OnDrawBackground();
+		//限制大小
+		//case   WM_GETMINMAXINFO:{
+		//	MINMAXINFO*   pMinMax = (MINMAXINFO*)lParam;
+		//	pMinMax->ptMinTrackSize.x = 640;
+		//	pMinMax->ptMinTrackSize.y = 480;
+		//	pMinMax->ptMaxTrackSize.x = 1024;
+		//	pMinMax->ptMaxTrackSize.y = 768;
+		//	return TRUE;
+		//						}
 		}
 
 	}CATCH_SEH;
@@ -326,6 +384,47 @@ HBRUSH sdf::Window::OnDrawBackground()
 void sdf::Window::OnPaint()
 {
 	//COUT(L"重绘");
+}
+
+void sdf::Window::AdjustLayout()
+{
+	for (auto control : memberList_)
+	{
+		int16_t x = control->GetPosX();
+		int16_t y = control->GetPosY();
+		int16_t w = control->GetWidth();
+		int16_t h = control->GetHeight();
+
+
+		if (control->marginRight_ > 0)
+		{
+			if (control->marginLeft_ > 0)
+			{
+				x = control->marginLeft_;
+				w = winWidth_ - x - control->marginRight_;
+			}
+			else
+				x = winWidth_ - control->marginRight_ - w;
+		}
+		else if (control->marginLeft_ > 0)
+			x = control->marginLeft_;
+
+
+		if (control->marginBottom_ > 0)
+		{
+			if (control->marginTop_ > 0)
+			{
+				y = control->marginTop_;
+				h = winHeight_ - y - control->marginBottom_;
+			}
+			else
+				y = winHeight_ - control->marginBottom_ - h;
+		}
+		else if (control->marginTop_ > 0)
+			y = control->marginTop_;
+
+		control->SetPosAndHW(x, y, w, h);
+	}
 }
 
 struct PopMsgStruct
@@ -1036,3 +1135,4 @@ char * sdf::Bitmap::CreateDib(int w, int h)
 	imgBuf_ = (char*)pBits;
 	return imgBuf_;
 }
+

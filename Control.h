@@ -24,10 +24,17 @@ namespace sdf
 		HWND handle_;
 		uint resourceID_;
 
+		int16_t posX_ = 0;
+		int16_t posY_ = 0;
+
+		int16_t winWidth_ = 0;
+		int16_t winHeight_ = 0;
+
 		friend class Tray;
 		friend struct WinHandle;
 		//最近一次创建的窗口,用于OnInit
 		static THREAD_LOCAL_VAR HWND currentHandle_;
+		static THREAD_LOCAL_VAR Window * parentWindow_;
 		static Window * currentWindow_;
 
 		//按钮焦点句柄
@@ -39,6 +46,12 @@ namespace sdf
 			::SetWindowLongPtr(handle_, GWLP_USERDATA, (LONG_PTR)this);
 		}
 	public:
+		//布局,边距
+		int16_t marginLeft_ = -1;
+		int16_t marginRight_ = -1;
+
+		int16_t marginTop_ = -1;
+		int16_t marginBottom_ = -1;
 
 		Control()
 			: handle_(NULL)
@@ -81,12 +94,12 @@ namespace sdf
 			return handle_;
 		}
 		///用资源标识符初始化
-		inline void Init(int id)
-		{
-			handle_ = ::GetDlgItem(currentHandle_, id);
-			resourceID_ = id;
-			InitUserData();
-		}
+		inline void Init(int id);
+
+		//*******************************************
+		// Summary : 获取在父窗口中的位置与大小
+		//*******************************************
+		void UpdateWinRect();
 
 
 		inline void Hide() const
@@ -107,14 +120,52 @@ namespace sdf
 			::EnableWindow(handle_, bo);
 		}
 
+		inline int16_t GetWidth() const
+		{
+			return winWidth_;
+		}
+
+		inline int16_t GetHeight() const
+		{
+			return winHeight_;
+		}
+
+		inline int16_t GetPosX() const
+		{
+			return posX_;
+		}
+
+		inline int16_t GetPosY() const
+		{
+			return posY_;
+		}
+
 		//设置显示位置
-		inline BOOL SetPos(int x, int y) const
+		inline BOOL SetPos(int16_t x, int16_t y)
 		{
 			MY_ASSERT(handle_ != NULL);
+			posX_ = x;
+			posY_ = y;
 			return ::SetWindowPos(handle_, 0, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOCOPYBITS);
 		}
 
-		static inline BOOL SetPos(WinHandle handle, int x, int y, int w, int h);
+		inline BOOL SetPosAndHW(int16_t x, int16_t y, int16_t w, int16_t h)
+		{
+			posX_ = x;
+			posY_ = y;
+			winWidth_ = w;
+			winHeight_ = h;
+			return ::SetWindowPos(handle_, 0, x, y, w, h, SWP_NOZORDER | SWP_NOCOPYBITS);
+		}
+
+		inline BOOL SetHW(int16_t w, int16_t h)
+		{
+			winWidth_ = w;
+			winHeight_ = h;
+			return ::SetWindowPos(handle_, 0, 0, 0, w, h, SWP_NOMOVE | SWP_NOZORDER | SWP_NOCOPYBITS);
+		}
+
+		//static inline BOOL SetPos(WinHandle handle, int x, int y, int w, int h);
 
 		inline void SetLimitText(int maxLen)
 		{
@@ -143,7 +194,7 @@ namespace sdf
 		//获取id选框状态
 		bool GetCheck()
 		{
-			return SendMessage(handle_, BM_GETCHECK, 0, 0)==1;
+			return SendMessage(handle_, BM_GETCHECK, 0, 0) == 1;
 		}
 
 		void SetCheck(BOOL Check)
@@ -221,10 +272,7 @@ namespace sdf
 	protected:
 
 
-	private:
-		Control(const Control &);
-		Control& operator=(const Control &);
-
+		DISABLE_COPY_ASSIGN(Control);
 	};
 
 	struct WinHandle
@@ -247,21 +295,19 @@ namespace sdf
 
 	};
 
-	BOOL Control::SetPos(WinHandle handle, int x, int y, int w, int h)
+
+
+
+	//使用智能指针创建托管窗口(paras构造参数)
+	template<typename T, typename ... ParT>
+	inline df::IntoPtr<T> NewWindow(ParT && ... paras)
 	{
-		return ::SetWindowPos(handle.handle_, 0, x, y, w, h, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOACTIVATE);
-	}
-
-
-
-	//使用智能指针创建托管窗口
-	template<class T>
-	inline df::IntoPtr<T> NewWindow()
-	{
-		df::IntoPtr<T> obj(new T);
+		df::IntoPtr<T> obj(new T(std::forward<ParT>(paras)...));
 		obj->PtrIncRef();
 		return obj;
 	}
+
+
 
 }
 
