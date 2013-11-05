@@ -94,7 +94,7 @@ namespace sdf
 			return handle_;
 		}
 		///用资源标识符初始化
-		inline void Init(int id);
+		void Init(int id);
 
 		//*******************************************
 		// Summary : 获取在父窗口中的位置与大小
@@ -173,12 +173,57 @@ namespace sdf
 			::SendMessage(handle_, EM_SETLIMITTEXT, maxLen, 0);
 		}
 
+		void SetReadOnly(BOOL bReadOnly /* = TRUE */)
+		{
+			::SendMessage(handle_, EM_SETREADONLY, bReadOnly, 0L);
+		}
+
 		//设置滚动条
 		inline void SetProgressPos(int val)
 		{
 			MY_ASSERT(handle_ != NULL);
 			MY_ASSERT(val >= 0);
 			::PostMessage(handle_, PBM_SETPOS, static_cast<WPARAM>(val), 0);
+		}
+
+		void AddText(const CC & str);
+
+		int GetLineCount() const
+		{
+			return (int)::SendMessage(handle_, EM_GETLINECOUNT, 0, 0);
+		}
+
+		int GetLineIndex(int nLine) const
+		{
+			return (int)::SendMessage(handle_, EM_LINEINDEX, nLine, 0);
+		}
+
+
+		//*******************************************
+		// Summary : 获取字符位置nStartChar所在行的长度
+		// Parameter - int nStartChar : 字符位置(-1获取光标所在行)
+		// Returns - int : 所在行长度
+		//*******************************************
+		int GetLineLength(int nStartChar) const
+		{
+			return (int)::SendMessage(handle_, EM_LINELENGTH, nStartChar, 0);
+		}
+
+		void SetSelectText(int nStartChar, int nEndChar, BOOL bNoScroll=FALSE)
+		{
+			::SendMessage(handle_, EM_SETSEL, nStartChar, nEndChar);
+			if (!bNoScroll)
+				::SendMessage(handle_, EM_SCROLLCARET, 0, 0);
+		}
+
+		void SetScroll(int nLines, int nChars=0)
+		{
+			::SendMessage(handle_, EM_LINESCROLL, nChars, nLines);
+		}
+
+		void ReplaceSelectText(const CC & lpszNewText, BOOL bCanUndo=FALSE)
+		{
+			::SendMessage(handle_, EM_REPLACESEL, (WPARAM)bCanUndo, (LPARAM)lpszNewText.GetBuffer());
 		}
 
 		void SetActive()
@@ -211,6 +256,10 @@ namespace sdf
 			return text;
 		}
 
+		int GetTextLength() const
+		{
+			return ::GetWindowTextLength(handle_);
+		}
 
 		void GetText(SS & text) const
 		{
@@ -306,6 +355,8 @@ namespace sdf
 		obj->PtrIncRef();
 		return obj;
 	}
+
+
 
 
 

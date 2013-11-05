@@ -30,6 +30,13 @@ Gdiplus::GdiplusStartupInput sdf::Gdip::gdiplusStartupInput_ = 0;
 
 //////////////////////////////////////////////////////////////////////////
 
+void sdf::Control::AddText(const CC & str)
+{
+	int len = GetTextLength();
+	SetSelectText(len, len);
+	ReplaceSelectText(str.GetBuffer());
+}
+
 void sdf::Control::UpdateWinRect()
 {
 	RECT rect;
@@ -233,15 +240,15 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, uint message, WPARAM wParam, 
 				return FALSE;
 					 }
 			//case WM_ERASEBKGND:
-		case WM_DRAWITEM:
-			{
-				//声明一个指向DRAWITEMSTRUCT结构体的指针并将其指向存储着按钮构造信息的lParam
-				LPDRAWITEMSTRUCT lpDIS = (LPDRAWITEMSTRUCT)lParam;
-				Control * controlP = GetUserData(lpDIS->hwndItem);
-				if (controlP)
-					controlP->ControlProc(hDlg, message, wParam, lParam);
-				return TRUE;
-						}
+		case WM_DRAWITEM:{
+
+			//声明一个指向DRAWITEMSTRUCT结构体的指针并将其指向存储着按钮构造信息的lParam
+			LPDRAWITEMSTRUCT lpDIS = (LPDRAWITEMSTRUCT)lParam;
+			Control * controlP = GetUserData(lpDIS->hwndItem);
+			if (controlP)
+				controlP->ControlProc(hDlg, message, wParam, lParam);
+			return TRUE;
+						 }
 		case Tray::TRAY_MESSAGE:
 			//cout<<"hwnd:"<<(int)hDlg<<endl;
 			if (LOWORD(lParam) == WM_RBUTTONUP) //右键菜单
@@ -258,17 +265,18 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, uint message, WPARAM wParam, 
 			return (intptr_t)Brush::GetNullBrush();
 		case WM_CTLCOLORSTATIC:
 			::SetBkMode((HDC)wParam, TRANSPARENT);
+			//return FALSE;
 		case WM_CTLCOLORDLG:
 			return (intptr_t)winP->OnDrawBackground();
-		//限制大小
-		//case   WM_GETMINMAXINFO:{
-		//	MINMAXINFO*   pMinMax = (MINMAXINFO*)lParam;
-		//	pMinMax->ptMinTrackSize.x = 640;
-		//	pMinMax->ptMinTrackSize.y = 480;
-		//	pMinMax->ptMaxTrackSize.x = 1024;
-		//	pMinMax->ptMaxTrackSize.y = 768;
-		//	return TRUE;
-		//						}
+			//限制大小
+			//case   WM_GETMINMAXINFO:{
+			//	MINMAXINFO*   pMinMax = (MINMAXINFO*)lParam;
+			//	pMinMax->ptMinTrackSize.x = 640;
+			//	pMinMax->ptMinTrackSize.y = 480;
+			//	pMinMax->ptMaxTrackSize.x = 1024;
+			//	pMinMax->ptMaxTrackSize.y = 768;
+			//	return TRUE;
+			//						}
 		}
 
 	}CATCH_SEH;
@@ -314,8 +322,8 @@ void sdf::Window::Release()
 	currentHandle_ = 0;
 	currentWindow_ = nullptr;
 	ReleaseUserData();
-	if (PtrDecRef() == 0)
-		delete this;
+
+	Ptr_Release();
 }
 
 void sdf::Window::MessageLoop()
@@ -388,6 +396,8 @@ void sdf::Window::OnPaint()
 
 void sdf::Window::AdjustLayout()
 {
+	//COUT(tcc_("AdjustLayout") << memberList_.Count());
+	OnLayout();
 	for (auto control : memberList_)
 	{
 		int16_t x = control->GetPosX();
@@ -396,9 +406,9 @@ void sdf::Window::AdjustLayout()
 		int16_t h = control->GetHeight();
 
 
-		if (control->marginRight_ > 0)
+		if (control->marginRight_ >= 0)
 		{
-			if (control->marginLeft_ > 0)
+			if (control->marginLeft_ >= 0)
 			{
 				x = control->marginLeft_;
 				w = winWidth_ - x - control->marginRight_;
@@ -406,13 +416,13 @@ void sdf::Window::AdjustLayout()
 			else
 				x = winWidth_ - control->marginRight_ - w;
 		}
-		else if (control->marginLeft_ > 0)
+		else if (control->marginLeft_ >= 0)
 			x = control->marginLeft_;
 
 
-		if (control->marginBottom_ > 0)
+		if (control->marginBottom_ >= 0)
 		{
-			if (control->marginTop_ > 0)
+			if (control->marginTop_ >= 0)
 			{
 				y = control->marginTop_;
 				h = winHeight_ - y - control->marginBottom_;
@@ -420,7 +430,7 @@ void sdf::Window::AdjustLayout()
 			else
 				y = winHeight_ - control->marginBottom_ - h;
 		}
-		else if (control->marginTop_ > 0)
+		else if (control->marginTop_ >= 0)
 			y = control->marginTop_;
 
 		control->SetPosAndHW(x, y, w, h);
@@ -565,6 +575,29 @@ LRESULT  __stdcall sdf::Window::PopMessageProc(HWND hDlg, uint message, WPARAM w
 		return 0; }
 	}
 	return DefWindowProc(hDlg, message, wParam, lParam);
+}
+
+void sdf::Window::InitWinData()
+{
+	gdi_.Init(handle_);
+	//使用父窗口字体
+	gdi_.SetObject(GetFont());
+	//文字背景透明
+	gdi_.SetTextBackColor();
+
+	UpdateWinRect();
+	UpdateBorderSize();
+	auto oldWin = parentWindow_;
+	parentWindow_ = this;
+	try
+	{
+		OnInit();
+	}CATCH_SEH;
+
+	parentWindow_ = oldWin;
+
+
+	AdjustLayout();
 }
 
 

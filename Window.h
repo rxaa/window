@@ -139,10 +139,16 @@ namespace sdf
 		//参数为ture :按下 false 抬起
 		virtual void OnMouseLeft(bool){}
 		virtual void OnMouseRight(bool){}
+		virtual void OnKeyUp(int){}
 
 		virtual void OnTimer(uint){}
 
 		virtual void OnResize()
+		{
+
+		}
+
+		virtual void OnLayout()
 		{
 
 		}
@@ -170,27 +176,7 @@ namespace sdf
 		}
 
 	private:
-		void InitWinData()
-		{
-			gdi_.Init(handle_);
-			//使用父窗口字体
-			gdi_.SetObject(GetFont());
-			//文字背景透明
-			gdi_.SetTextBackColor();
-
-			UpdateWinRect();
-			UpdateBorderSize();
-			auto oldWin = parentWindow_;
-			parentWindow_ = this;
-			try
-			{
-				OnInit();
-			}CATCH_SEH;
-
-			parentWindow_ = oldWin;
-
-			AdjustLayout();
-		}
+		void InitWinData();
 
 		void Release();
 
