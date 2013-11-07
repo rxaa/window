@@ -88,7 +88,7 @@ namespace sdf
 		{
 		}
 
-		void SetImageList(ImageList & li)
+		void SetImageList(const ImageList & li)
 		{
 			SendMessage(handle_, LVM_SETIMAGELIST, (WPARAM)(LVSIL_SMALL), (LPARAM)(li.GetHandle()));
 		}

@@ -1169,3 +1169,55 @@ char * sdf::Bitmap::CreateDib(int w, int h)
 	return imgBuf_;
 }
 
+////////////////////////////////FileListView//////////////////////////////////////////
+void sdf::FileListView::InitImage(int disk, int menu, int file)
+{
+	imageList_.reset(new ImageList());
+	imageList_->Add(disk);
+	imageList_->Add(menu);
+	imageList_->Add(file);
+	SetImageList(*imageList_);
+}
+
+void sdf::FileListView::ShowMenu(const CC & menu)
+{
+	currentMenu_ = menu;
+
+	Clear();
+
+	SS txt;
+	if (menu.Length()==0)
+	{
+		dirList_.Clear();
+		df::EachDisk([&](DiskInfo & disk){
+			txt = DiskInfo::typeInfo[disk.type_];
+			txt.AddByte(disk.freeSize_) << cct_(" / ");
+			txt.AddByte(disk.totalSize_);
+
+			if (imageList_)
+				AddImageRow(0, disk.name_, txt);
+			else
+				AddRow(disk.name_, txt);
+			dirList_.listDir_.Add(cct_(""), 0);
+		});
+		return;
+	}
+
+	dirList_.Get(menu);
+	for (auto & dir : dirList_.listDir_)
+	{
+		if (imageList_)
+			AddImageRow(1, dir.name_, cct_(""));
+		else
+			AddRow(dir.name_, cct_(""));
+	}
+
+	for (auto & file : dirList_.listFile_)
+	{
+		if (imageList_)
+			AddImageRow(2, file.name_, txt.ClearString().AddByte(file.size_));
+		else
+			AddRow(file.name_, txt.ClearString().AddByte(file.size_));
+		
+	}
+}

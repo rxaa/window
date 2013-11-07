@@ -19,7 +19,7 @@ namespace sdf
 		}
 
 
-		HIMAGELIST GetHandle()
+		HIMAGELIST GetHandle() const
 		{
 			return imageList_;
 		}

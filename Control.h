@@ -261,12 +261,13 @@ namespace sdf
 			return ::GetWindowTextLength(handle_);
 		}
 
-		void GetText(SS & text) const
+		SS & GetText(SS & text) const
 		{
 			MY_ASSERT(handle_ != NULL);
 			int res = ::GetWindowTextLength(handle_) + 1;
 			text.SetBufSizeNoCopy(res);
 			text.strLength_ = GetWindowText(handle_, text.GetBuffer(), text.GetBufferSize());
+			return text;
 		}
 		void SetText(const CC & str) const
 		{
@@ -376,6 +377,7 @@ namespace sdf
 #include "ChoiceBox.h"
 #include "ImageList.h"
 #include "ListView.h"
+#include "FileListView.h"
 #include "Tray.h"
 #include "TabControl.h"
 #include "Window.h"
