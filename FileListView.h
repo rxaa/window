@@ -29,6 +29,16 @@ namespace sdf
 			return currentMenu_;
 		}
 
+		List<df::Dir::DirInfo> & GetDirList()
+		{
+			return dirList_.listDir_;
+		}
+
+		List<df::Dir::DirInfo> & GetFileList()
+		{
+			return dirList_.listFile_;
+		}
+
 		SS & Refresh()
 		{
 			ShowMenu(currentMenu_);
@@ -37,7 +47,7 @@ namespace sdf
 
 		SS & Back()
 		{
-			int pos = currentMenu_.Find(tt_('\\'), currentMenu_.Length() - 2, false);
+			auto pos = currentMenu_.Find(tt_('\\'), currentMenu_.Length() - 2, false);
 			if (pos > 0)
 				currentMenu_.SetSize(pos + 1);
 			else

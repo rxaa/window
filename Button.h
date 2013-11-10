@@ -10,10 +10,7 @@ namespace sdf
 		typedef void (*DrawCallBack)(Button & but);
 		static void DefaultDraw(Button & but, DWORD normal, DWORD hover);
 	public:
-		//按钮大小
-		RECT buttonRect_;
 		Gdi buttonGdi_;
-		//HDC butDc_;
 
 		//按钮状态
 		enum

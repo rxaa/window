@@ -672,7 +672,7 @@ bool sdf::Button::ControlProc(HWND, UINT msg, WPARAM, LPARAM lParam)
 
 		//butDc_ = lpDIS->hDC;
 		//按钮的矩形区域
-		buttonRect_ = lpDIS->rcItem;
+		//buttonRect_ = lpDIS->rcItem;
 
 		if (!onDraw_)
 			break;
@@ -745,10 +745,14 @@ LRESULT  __stdcall sdf::Button::ButtonProc(HWND hDlg, uint message, WPARAM wPara
 
 void sdf::Button::DefaultDraw(Button & but, DWORD normal, DWORD hover)
 {
-	RECT rect = but.buttonRect_;
+	RECT rect;
+	rect.left = 0;
+	rect.top = 0;
+	rect.right = but.GetWidth();
+	rect.bottom = but.GetHeight();
 
-	int w = rect.right - rect.left;
-	int h = rect.bottom - rect.top;
+	int w = rect.right;
+	int h = rect.bottom;
 
 	if (buttonBmp_.GetWidth() < w || buttonBmp_.GetHeight() < h)
 	{
