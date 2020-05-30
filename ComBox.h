@@ -8,72 +8,93 @@ namespace sdf
 		: public Control
 	{
 	public:
+		std::function<void(ComBox&)> onCreate_;
 		std::function<void()> onSelectChange_;
-		std::function<void()> onTextChange_;
+		std::function<void()> onChange_;
+		bool editAble = false;
 
-		inline void Clear()
+		ComBox(Control* parent) {
+			setParent(parent);
+		}
+		virtual ~ComBox() {
+
+		}
+
+		inline void clear()
 		{
-			MY_ASSERT(handle_ != NULL);
+			DF_ASSERT(handle_ != NULL);
 			SendMessage(handle_, CB_RESETCONTENT, 0, 0);
 		}
 
 		//统计个数
-		inline int Count()
+		inline int count()
 		{
-			MY_ASSERT(handle_ != NULL);
-			return (int) SendMessage(handle_, CB_GETCOUNT, 0, 0);
+			DF_ASSERT(handle_ != NULL);
+			return (int) ::SendMessage(handle_, CB_GETCOUNT, 0, 0);
 		}
 		//删除index
-		inline BOOL Delete(int Index)
+		inline BOOL del(int Index)
 		{
-			MY_ASSERT(Index >= 0 && Index < Count());
-			return (BOOL) SendMessage(handle_, CB_DELETESTRING, Index, 0) + 1;
+			DF_ASSERT(Index >= 0 && Index < count());
+			return (BOOL) ::SendMessage(handle_, CB_DELETESTRING, Index, 0) + 1;
 		}
 
 		//获取选中的index
-		int GetSelectIndex()
+		int getSelectIndex()
 		{
-			MY_ASSERT(handle_ != NULL);
-			return (int) SendMessage(handle_, CB_GETCURSEL, 0, 0); //获取选中值
+			DF_ASSERT(handle_ != NULL);
+			return (int) ::SendMessage(handle_, CB_GETCURSEL, 0, 0); //获取选中值
 		}
 
-		inline BOOL SetSelectIndex(int index)
+		inline BOOL setSelectIndex(int index)
 		{
-			MY_ASSERT(index >= 0 && index < Count());
-			return (BOOL) SendMessage(handle_, CB_SETCURSEL, index, 0) + 1;
+			DF_ASSERT(index >= 0 && index < count());
+			return (BOOL) ::SendMessage(handle_, CB_SETCURSEL, index, 0) + 1;
 		}
 
 
-		inline int Add(const CC & str)
+		inline int add(const df::CC & str)
 		{
+			if (!handle_) {
+				if (!initList)
+					initList.reset(new std::vector<String>());
+
+				initList->push_back(str.ToString());
+				return 0;
+			}
+
 			int i = (int) SendMessage(handle_, CB_ADDSTRING, 0, (LPARAM) str.char_);
 			return i;
 		}
 
+
 		//获取index的字符串内容
-		SS GetIndexText(int Index)
+		df::String getIndexText(int Index)
 		{
-			MY_ASSERT(Index >= 0 && Index < Count());
-			int len = (int) SendMessage(handle_, CB_GETLBTEXTLEN, Index, 0) + 1;
-			SS str(len + 1);
-			len = SendMessage(handle_, CB_GETLBTEXT, Index, (LPARAM) str.GetBuffer());//提取选中字符
-			if (len > 0)
-				str.strLength_ = len;
+			df::String str;
+			getIndexText(Index, str);
 			return str;
 		}
 
 		//获取index的字符串内容
-		void GetIndexText(int Index, SS & str)
+		void getIndexText(int Index, df::String& str)
 		{
-			MY_ASSERT(Index >= 0 && Index < Count());
-			int len = (int) SendMessage(handle_, CB_GETLBTEXTLEN, Index, 0) + 1;
-			str.SetBufSizeNoCopy(len + 1);
-			len = SendMessage(handle_, CB_GETLBTEXT, Index, (LPARAM) str.GetBuffer());//提取选中字符
-			if (len > 0)
-				str.strLength_ = len;
-		}
+			DF_ASSERT(Index >= 0 && Index < count());
+			intptr_t len = SendMessage(handle_, CB_GETLBTEXTLEN, Index, 0) + 1;
+			str.resize(len);
+			len = SendMessage(handle_, CB_GETLBTEXT, Index, (LPARAM)&str[0]);//提取选中字符
 
+		}
+		virtual void onDraw() {
+			//COUT(tt_("重绘ComBox"));
+			//update();
+		}
 	protected:
+		std::unique_ptr<std::vector<String>> initList;
+
+		///初始化
+		virtual void initCreate();
+		virtual void Init();
 		bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
 
 	};
@@ -81,6 +102,8 @@ namespace sdf
 
 
 }
+#define ui_onselect_change v.onSelectChange_ = [&]()
+#define ui_combox sdf::ComBox * DF_MIX_LINENAME(UIBUTTON, __LINE__)=new sdf::ComBox(&v);DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&](sdf::ComBox &v)
 
 
 #endif // ComBox_h__2013_8_9__22_40

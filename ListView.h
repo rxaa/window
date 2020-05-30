@@ -78,7 +78,7 @@ namespace sdf
 		template<int i,class CT, class... Args>
 		void AddRowSubItem(CT && name, Args &&... args)
 		{
-			MY_ASSERT(i < columnCount_);
+			DF_ASSERT(i < columnCount_);
 			AddSubItem(name,i);
 			AddRowSubItem<i + 1>(args...);
 		}
@@ -117,8 +117,8 @@ namespace sdf
 		///添加子项(内容,列号)
 		void AddSubItem(const CC & name,int column)
 		{
-			MY_ASSERT(column>0);
-			MY_ASSERT(column<columnCount_);
+			DF_ASSERT(column>0);
+			DF_ASSERT(column<columnCount_);
 			ListView_SetItemText(handle_ , rowCount_-1 , column , (LPTSTR)name.char_);
 		}
 
@@ -130,8 +130,8 @@ namespace sdf
 		//删除行
 		bool Delete(int row)
 		{
-			MY_ASSERT(row>=0);
-			MY_ASSERT(row<rowCount_);
+			DF_ASSERT(row>=0);
+			DF_ASSERT(row<rowCount_);
 			if(ListView_DeleteItem(handle_, row) )
 			{
 				rowCount_--;
@@ -148,17 +148,17 @@ namespace sdf
 		//选中状态
 		BOOL GetItemState(int id)
 		{
-			MY_ASSERT(id>=0);
-			MY_ASSERT(id<rowCount_);
+			DF_ASSERT(id>=0);
+			DF_ASSERT(id<rowCount_);
 			return ListView_GetItemState(handle_,id,LVIS_SELECTED);
 		}
 
 		BOOL SetText(int row,int column,const sdf::CC & str )
 		{
-			MY_ASSERT(row>=0);
-			MY_ASSERT(row<rowCount_);
-			MY_ASSERT(column>=0);
-			MY_ASSERT(column<columnCount_);
+			DF_ASSERT(row>=0);
+			DF_ASSERT(row<rowCount_);
+			DF_ASSERT(column>=0);
+			DF_ASSERT(column<columnCount_);
 			LVITEM lvi;
 			lvi.iSubItem = column;
 			lvi.pszText = (LPTSTR) str.char_;
@@ -168,10 +168,10 @@ namespace sdf
 		///获取index行,id列的内容
 		sdf::SS GetText(int row,int column)
 		{
-			MY_ASSERT(row>=0);
-			MY_ASSERT(row<rowCount_);
-			MY_ASSERT(column>=0);
-			MY_ASSERT(column<columnCount_);
+			DF_ASSERT(row>=0);
+			DF_ASSERT(row<rowCount_);
+			DF_ASSERT(column>=0);
+			DF_ASSERT(column<columnCount_);
 
 			SS ss;
 			LVITEM lvi={0};

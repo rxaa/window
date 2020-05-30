@@ -7,79 +7,104 @@ namespace sdf
 		: public Control
 	{
 		//绘图回调
-		typedef void (*DrawCallBack)(Button & but);
-		static void DefaultDraw(Button & but, DWORD normal, DWORD hover);
 	public:
 		Gdi buttonGdi_;
-
-		//按钮状态
-		enum
-		{
-			StateNormal = 0
-			, StateHover = 1
-			, StatePressed = 2
-		};
-		int buttonState;
-		bool isFocused_;
-		bool isDisable_;
-
 		//事件
+		std::function<void(Button&)> onCreate_;
 		std::function<void()> onClick_;
 		//全局绘图缓冲
 		static Bitmap buttonBmp_;
-		static char * buttonBmpBuf_;
-
-
-		DrawCallBack onDraw_;
-
-		//颜色(ARGB)
-		//内存:(BGRA)
-		static const DWORD blueColor_ = 0xFF4192E1;
-		static const DWORD blueHoverColor_ = 0xFF1B80E4;
-		static const DWORD orangeColor_ = 0xFFE19241;
-		static const DWORD orangeHoverColor_ = 0xFFE4801B;
-		static const DWORD greenColor_ = 0xFF1ABC6E;
-		static const DWORD greenHoverColor_ = 0xFF0FB264;
-		static const DWORD redColor_ = 0xFFFF2F2F;
-		static const DWORD redHoverColor_ = 0xFFF00000;
-
-		inline static void BlueButton(Button & but)
+		static char* buttonBmpBuf_;
+		bool oldStyle = false;
+		bool isCheck = false;
+		ControlStyle styleCheck;
+		Button(Control* parent)
 		{
-			DefaultDraw(but, blueColor_, blueHoverColor_);
+			setColorDark(Color::blueColor_);
+
+			pos.paddingX(10);
+			pos.paddingY(6);
+			setParent(parent);
 		}
 
-		inline static void OrangeButton(Button & but)
-		{
-			DefaultDraw(but, orangeColor_, orangeHoverColor_);
+		void setColorLight(uint32_t col) {
+			style.color = Color::black;
+			style.backColor = col;
+			styleHover = style;
+
+			styleHover.backColor = Color::mixColor(style.backColor, 10);
+			stylePress = styleHover;
+			stylePress.shadowSize = 5;
+			styleDisable = style;
+			styleDisable.color = Color::greyLight;
+
+			styleFocused = style;
+			styleCheck = style;
 		}
 
-		inline static void GreenButton(Button & but)
-		{
-			DefaultDraw(but, greenColor_, greenHoverColor_);
+		void setColorDark(uint32_t col) {
+			style.color = Color::white;
+			style.backColor = col;
+			styleHover = style;
+
+			styleHover.backColor = Color::mixColor(style.backColor, 10);
+			stylePress = styleHover;
+			stylePress.shadowSize = 5;
+			styleDisable = style;
+			styleDisable.color = Color::darkGrey;
+			styleFocused = style;
+			styleCheck = style;
 		}
 
-		inline static void RedButton(Button & but)
-		{
-			DefaultDraw(but, redColor_, redHoverColor_);
+		void setCheck(bool Check) {
+			isCheck = Check;
+			onDraw();
 		}
 
-		Button()
-			: buttonState(StateNormal)
-			, isFocused_(false)
-			, isDisable_(false)
-			, onDraw_(BlueButton)
-		{
 
+		virtual ~Button() {
+			//COUT(tt_("gone"));
 		}
 
-		///用资源标识符初始化
-		void Init(int id);
+		virtual void onHover() {
+			onDraw();
+		}
+
+		virtual void onLeave() {
+			onDraw();
+		}
+
+		virtual void getContentWH(int32_t& w, int32_t& h) {
+			h = GlobalFont().GetFontSize();
+			w = Gdi::GetScreen().GetTextPixel(text);
+		}
+
+		static bool drawStyle(Control* cont, ControlStyle& style, const String& text);
+
+		virtual void onDraw();
+
 
 	protected:
-		static LRESULT  __stdcall ButtonProc(HWND hDlg, uint message, WPARAM wParam, LPARAM lParam);
+		friend View;
+
+		virtual void initCreate() {
+			doCreate(this);
+		}
+		//初始化位于initCreate之后执行
+		virtual void Init();
+
 		bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
+
 	};
 
+
+
 }
+
+#define ui_onclick v.onClick_ = [&]()
+
+#define ui_button sdf::Button * DF_MIX_LINENAME(UIBUTTON, __LINE__)=new sdf::Button(&v);DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&](sdf::Button &v)
+
+
 
 #endif // Button_h__2013_8_1__14_27

@@ -1,4 +1,5 @@
-﻿#ifndef FileListView_h__2013_11_5__20_59
+﻿#include "..\df\Proc.h"
+#ifndef FileListView_h__2013_11_5__20_59
 #define FileListView_h__2013_11_5__20_59
 
 
@@ -21,8 +22,14 @@ namespace sdf
 
 		SS & NaviMenu(int i)
 		{
-			if (i < 0 || i >= dirList_.listDir_.Size())
+			if (i < 0)
 				return currentMenu_;
+
+			if (i >= dirList_.listDir_.Size())
+			{
+				df::RunProc(currentMenu_ +tcc_("\\") + GetText(i, 0));
+				return currentMenu_;
+			}
 
 			currentMenu_ << GetText(i, 0) + cct_("\\");
 			ShowMenu(currentMenu_);
@@ -42,6 +49,7 @@ namespace sdf
 		SS & Refresh()
 		{
 			ShowMenu(currentMenu_);
+			
 			return currentMenu_;
 		}
 
@@ -54,8 +62,9 @@ namespace sdf
 				currentMenu_.ClearString();
 
 			ShowMenu(currentMenu_);
-
+			SetFocus();
 			return currentMenu_;
+
 		}
 
 	};

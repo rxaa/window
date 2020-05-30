@@ -3,36 +3,40 @@
 
 namespace sdf
 {
+	using namespace df::sdf;
+	using df::String;
+
+	class Window;
+
+	struct WinHandle;
+
+	class Bitmap;
+	class Control;
+
 	class Font
 	{
 	public:
-		Font(long size = 20, CC name = cct_("宋体"))
-		{
-			memset(&logFont_, 0, sizeof(LOGFONT));
-			if (name.length_ > 31)
-				name.length_ = 31;
-			memcpy(logFont_.lfFaceName, name.char_, name.length_*sizeof(TCHAR));
-			logFont_.lfHeight = size;
-			font_ = CreateFontIndirect(&logFont_);
-		}
+
+		static const uint32_t initSize = 16;
+		Font(long size = initSize, df::CC name = tcc_("新宋体"));
+
 		~Font()
 		{
 			DeleteObject(font_);
 		}
 
-		HFONT SetFont(long size = 20, CC name = cct_("宋体"))
-		{
-			memset(&logFont_, 0, sizeof(LOGFONT));
-			
-			if (name.length_ > 31)
-				name.length_ = 31;
-			memcpy(logFont_.lfFaceName, name.char_, name.length_*sizeof(TCHAR));
-
-			logFont_.lfHeight = size;
-			DeleteObject(font_);
-			font_ = CreateFontIndirect(&logFont_);
-			return font_;
+		void SetFont(const Font& f) {
+			font_ = f.font_;
+			logFont_ = f.logFont_;
 		}
+
+		uint32_t getRawSize() {
+			return rawSize;
+		}
+		
+
+		HFONT SetFont(df::CC name, long size = initSize);
+
 
 		template<class LamT>
 		static void EnumFont(HDC dc, LamT lam)
@@ -55,16 +59,17 @@ namespace sdf
 	private:
 
 		template<class LamT>
-		static int CALLBACK EnumFontFamExProc(const LOGFONT *lpelfe, const TEXTMETRIC *, DWORD FontType, LPARAM lParam)
+		static int CALLBACK EnumFontFamExProc(const LOGFONT* lpelfe, const TEXTMETRIC*, DWORD FontType, LPARAM lParam)
 		{
-			if (FontType & TRUETYPE_FONTTYPE && lpelfe->lfFaceName[0] != t_t('@'))
+			if (FontType & TRUETYPE_FONTTYPE && lpelfe->lfFaceName[0] != tt_('@'))
 			{
-				(*(LamT*) lParam)(lpelfe->lfFaceName);
+				(*(LamT*)lParam)(lpelfe->lfFaceName);
 				//COUT(lpelfe->lfFaceName);
 			}
 			return 1;
 		}
 	private:
+		uint32_t rawSize = 0;
 		HFONT font_;
 		LOGFONT logFont_;
 	};

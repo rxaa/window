@@ -31,11 +31,11 @@ namespace sdf
 		static std::function<void()> & OnRightClick();
 
 		//创建任务栏通知,(通知文字,图标资源标识符,气泡内容,气泡停留时间)
-		BOOL Init(const CC & szToolTip, uint icon, const CC & szInfo = cct_("程序已启动!"), int uTimeout = 2000)
+		BOOL Init(const df::CC & szToolTip, UINT icon, const df::CC & szInfo = tcc_("程序已启动!"), int uTimeout = 2000)
 		{
 			HWND hParent=Control::currentHandle_;
 
-			HICON iconp=::LoadIcon(df::Global::progressInstance_, MAKEINTRESOURCE(icon));
+			HICON iconp=::LoadIcon(Control::progInstance_, MAKEINTRESOURCE(icon));
 
 
 			// 填充 NOTIFYICONDATA 结构
@@ -46,14 +46,14 @@ namespace sdf
 			m_tnd.hIcon  = iconp;
 			m_tnd.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 			m_tnd.uCallbackMessage = TRAY_MESSAGE;
-			Sprintf(m_tnd.szTip,128,_T("%s"), szToolTip.char_);
+			df::Sprintf(m_tnd.szTip,128,_T("%s"), szToolTip.char_);
 
 			//气泡
 			if(szInfo[0])
 			{
 				m_tnd.uFlags |= NIF_INFO;
-				Sprintf(m_tnd.szInfo,128,_T("%s"),szInfo.char_);
-				Sprintf(m_tnd.szInfoTitle,64,_T("%s"), szToolTip.char_);
+				df::Sprintf(m_tnd.szInfo,128,_T("%s"),szInfo.char_);
+				df::Sprintf(m_tnd.szInfoTitle,64,_T("%s"), szToolTip.char_);
 				m_tnd.uTimeout=uTimeout;
 				m_tnd.dwInfoFlags=1;
 			}

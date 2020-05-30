@@ -10,8 +10,10 @@ namespace sdf
 	public:
 		static void Init()
 		{
-			Gdiplus::GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, NULL);
-			atexit(Shutdown);
+			if (gdiplusToken_ == 0) {
+				Gdiplus::GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, NULL);
+				atexit(Shutdown);
+			}
 		}
 
 		static void Shutdown()

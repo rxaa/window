@@ -14,11 +14,11 @@ namespace sdf
 		ChoiceBox & parentBox_;
 		int parentIndex_;
 	public:
-		ChoiceItem(ChoiceBox & parent,int id,int index)
+		ChoiceItem(ChoiceBox & parent,int index)
 			: parentBox_(parent)
 			, parentIndex_(index)
 		{
-			Init(id);
+			//Init(id);
 		}
 		/*
 		ChoiceItem(ChoiceItem && r)
@@ -51,31 +51,41 @@ namespace sdf
 
 		~ChoiceBox(void)
 		{
-			for(int i=0;i<itemList.Count();i++)
+			for(int i=0;i<itemList.size();i++)
 				delete itemList[i];
 		}
 		//句柄
-		List<ChoiceItem*> itemList;
-		void AddItem(int id)
+		std::vector<ChoiceItem*> itemList;
+		void AddItem()
 		{
-			itemList.Add(new ChoiceItem(*this,id,itemList.Count()));
+			itemList.push_back(new ChoiceItem(*this, (int)itemList.size()));
 		}
 
 		///设置单选
 		void SetRadio(int index)
 		{
-			MY_ASSERT(index>=0);
-			MY_ASSERT(index<itemList.Size());
-			for(int i=0;i<itemList.Size();i++)
+			DF_ASSERT(index>=0);
+			DF_ASSERT(index<itemList.size());
+			for(int i=0;i<itemList.size();i++)
 				SendMessage(itemList[i]->handle_, BM_SETCHECK, (i==index), 0);
 		}
 
 		ChoiceItem & operator[](int i)
 		{
-			MY_ASSERT(i>=0);
-			MY_ASSERT(i<itemList.Size());
+			DF_ASSERT(i>=0);
+			DF_ASSERT(i<itemList.size());
 			return *itemList[i];
 		}
+
+	/*	ChoiceItem ** begin() const
+		{
+			return itemList.begin();
+		}
+
+		ChoiceItem ** end() const
+		{
+			return itemList.end();
+		}*/
 
 	};
 
