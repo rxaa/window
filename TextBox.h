@@ -47,7 +47,8 @@ namespace sdf
 
 
 #define ui_onchange v.onChange_ = [&]()
-#define ui_text_box sdf::TextBox * DF_MIX_LINENAME(UIBUTTON, __LINE__)=new sdf::TextBox(&v);DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&](sdf::TextBox &v)
+
+#define ui_text_box ui_control(sdf::TextBox) 
 
 
 #endif // TextBox_h__2013_8_1__16_39

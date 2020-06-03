@@ -7,14 +7,16 @@ namespace sdf
 		: public Control
 	{
 		//绘图回调
+	protected:
+		Button() {
+		}
 	public:
 		Gdi buttonGdi_;
 		//事件
 		std::function<void(Button&)> onCreate_;
 		std::function<void()> onClick_;
-		//全局绘图缓冲
-		static Bitmap buttonBmp_;
-		static char* buttonBmpBuf_;
+
+	
 		bool oldStyle = false;
 		bool isCheck = false;
 		ControlStyle styleCheck;
@@ -27,11 +29,20 @@ namespace sdf
 			setParent(parent);
 		}
 
+		void setBackColor(int32_t color) {
+			style.backColor = color;
+			stylePress.backColor = color;
+			styleHover.backColor = color;
+			styleDisable.backColor = color;
+			styleCheck.backColor = color;
+			styleFocused.backColor = color;
+		}
+
 		void setColorLight(uint32_t col) {
 			style.color = Color::black;
 			style.backColor = col;
 			styleHover = style;
-
+			 
 			styleHover.backColor = Color::mixColor(style.backColor, 10);
 			stylePress = styleHover;
 			stylePress.shadowSize = 5;
@@ -56,7 +67,7 @@ namespace sdf
 			styleCheck = style;
 		}
 
-		void setCheck(bool Check) {
+		virtual void setCheck(bool Check) {
 			isCheck = Check;
 			onDraw();
 		}
@@ -79,7 +90,7 @@ namespace sdf
 			w = Gdi::GetScreen().GetTextPixel(text);
 		}
 
-		static bool drawStyle(Control* cont, ControlStyle& style, const String& text);
+	
 
 		virtual void onDraw();
 
@@ -101,9 +112,11 @@ namespace sdf
 
 }
 
+
+
 #define ui_onclick v.onClick_ = [&]()
 
-#define ui_button sdf::Button * DF_MIX_LINENAME(UIBUTTON, __LINE__)=new sdf::Button(&v);DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&](sdf::Button &v)
+#define ui_button ui_control(sdf::Button)
 
 
 

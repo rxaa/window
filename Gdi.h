@@ -9,25 +9,31 @@ namespace sdf {
 	struct Color {
 		enum {
 			//windows灰
-			grey = 0xF0F0F0,
+			grey = 0xffF0F0F0,
 			//黑
-			black = 0x000000,
-			greyLight = 0x888888,
+			black = 0xff000000,
+
+			greyLight = 0xFF888888,
 			//深灰
-			darkGrey = 0xA0A0A0,
+			greyMid = 0xffBBBBBB,
+			//深灰
+			darkGrey = 0xffA0A0A0,
 			//红色
-			red = 0xff4028,
+			red = 0xFFff4028,
+			pink = 0xFFffc8d0,
+
 			//紫色
-			purple = 0xcd85ad8,
+			purple = 0xFFd85ad8,
 			//浅蓝
-			blueLight = 0xFFade1ff,
+			blueLight = 0xFFd0edfe,
 			yellow = 0xFFf3dd60,
+			yellowLight = 0xFFfff8d1,
 			//蓝色
 			blue = 0xFF4192E1,
 			//深蓝
-			barkBlue = 0x0000FF,
+			barkBlue = 0xff0000FF,
 			//白色
-			white = 0xFFFFFF
+			white = 0xFFFFFFFF
 		};
 
 		//颜色(ARGB)
@@ -80,6 +86,9 @@ namespace sdf {
 		explicit Pen(uint32_t cc, int Psize = 1, int style = PS_SOLID)
 			: pen_(CreatePen(style, Psize, Color::toRGB(cc))) {
 
+		}
+		bool vaild() {
+			return pen_ != nullptr;
 		}
 
 		~Pen() {

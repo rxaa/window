@@ -98,7 +98,7 @@ namespace sdf {
 
 }
 
-#define ui_list_box sdf::ListBox * DF_MIX_LINENAME(UIBUTTON, __LINE__)=new sdf::ListBox(&v);DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&](sdf::ListBox &v)
+#define ui_list_box ui_control(sdf::ListBox) 
 
 
 #endif // ListBox_h__2013_8_1__19_52

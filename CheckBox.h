@@ -3,41 +3,130 @@
 
 namespace sdf
 {
+
 	class CheckBox
-		: public Control
+		: public Button
 	{
 	public:
-		Gdi gdi_;
-		//多行显示
 
-		std::function<void()> onClick_;
+		bool dot = false;
 		std::function<void(CheckBox&)> onCreate_;
-		bool check_ = false;
 
-		CheckBox(Control* parent) {
+		CheckBox(Control* parent, bool dot = false) :dot(dot) {
 			setParent(parent);
+			style.borderColor = Color::greyMid;
+			styleDisable.borderColor = Color::grey;
+			styleHover.borderColor = Color::blue;
+			if (parent && parent->style.backColor)
+				setBackColor(parent->style.backColor);
+			else
+				setBackColor(Color::white);
 		}
+
+
 
 		virtual ~CheckBox() {
 			//COUT(tt_("gone"));
 		}
-
-		virtual void onDraw() {
-			//COUT(tt_("重绘TextBox"));
-			//update();
+		virtual void getContentWH(int32_t& w, int32_t& h) {
+			h = GlobalFont().GetFontSize() + 4;
+			w = Gdi::GetScreen().GetTextPixel(text) + h + 3;
 		}
+
+		virtual void onDrawText(RECT& rect);
 
 	protected:
 		///初始化
-		virtual void initCreate();
-		virtual void Init();
-		
+		virtual void initCreate()
+		{
+			pos.padding(5);
+			doCreate(this);
+		}
+
 
 		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
+	};
+
+
+	class CheckGroup :public View {
+	public:
+		std::function<void(CheckGroup&)> onCreate_;
+
+		CheckGroup(Control* parent) :View(parent) {
+			if (parent && parent->style.backColor)
+				setBackColor(parent->style.backColor);
+			else
+				setBackColor(Color::white);
+		}
+
+		virtual void initCreate() {
+			doCreate(this);
+		}
+
+		//返回选中成员索引
+		//没有选中则返回-1
+		int getCheck() {
+			int checkI = 0;
+			for (auto& cont : memberList_) {
+
+				CheckBox* check = dynamic_cast <CheckBox*>(cont.get());
+				if (check) {
+					if (check->isCheck) {
+						return checkI;
+					}
+					checkI++;
+				}
+			}
+			return -1;
+		}
+
+		void setCheck(CheckBox* box)
+		{
+			int checkI = 0;
+			for (auto& cont : memberList_) {
+
+				CheckBox* check = dynamic_cast <CheckBox*>(cont.get());
+				if (check) {
+					if (check == box) {
+						check->setCheck(true);
+					}
+					else {
+						check->setCheck(false);
+					}
+					checkI++;
+				}
+			}
+		}
+
+		///设置单选
+		void setCheck(int index)
+		{
+			DF_ASSERT(index >= 0);
+			DF_ASSERT(index < memberList_.size());
+			int checkI = 0;
+			for (auto& cont : memberList_) {
+
+				CheckBox* check = dynamic_cast <CheckBox*>(cont.get());
+				if (check) {
+					if (checkI == index) {
+						check->setCheck(true);
+					}
+					else {
+						check->setCheck(false);
+					}
+					checkI++;
+				}
+			}
+		}
 	};
 
 }
 
 
-#define ui_check_box sdf::CheckBox * DF_MIX_LINENAME(UIBUTTON, __LINE__)=new sdf::CheckBox(&v);DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&](sdf::CheckBox &v)
+#define ui_check_group ui_control(sdf::CheckGroup) 
+
+#define ui_check_dot ui_control2(sdf::CheckBox, true) 
+
+
+#define ui_check_box ui_control(sdf::CheckBox) 
 

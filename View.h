@@ -16,7 +16,7 @@ namespace sdf {
 			//COUT(tt_("gone"));
 		}
 
-
+	
 		virtual void getContentWH(int32_t& w, int32_t& h) {
 			h = GlobalFont().GetFontSize();
 			w = Gdi::GetScreen().GetTextPixel(text);
@@ -38,8 +38,7 @@ namespace sdf {
 
 }
 
-
-#define ui_view sdf::View * DF_MIX_LINENAME(UIBUTTON, __LINE__)=new sdf::View(&v);DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&](sdf::View &v)
+#define ui_view ui_control(sdf::View) 
 
 
 #endif //WINDOWSTAP_VIEW_H

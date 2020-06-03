@@ -103,7 +103,8 @@ namespace sdf
 
 }
 #define ui_onselect_change v.onSelectChange_ = [&]()
-#define ui_combox sdf::ComBox * DF_MIX_LINENAME(UIBUTTON, __LINE__)=new sdf::ComBox(&v);DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&](sdf::ComBox &v)
+
+#define ui_combox ui_control(sdf::ComBox) 
 
 
 #endif // ComBox_h__2013_8_9__22_40
