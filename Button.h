@@ -1,5 +1,4 @@
-﻿#ifndef Button_h__2013_8_1__14_27
-#define Button_h__2013_8_1__14_27
+﻿#pragma once
 
 namespace sdf
 {
@@ -119,5 +118,3 @@ namespace sdf
 #define ui_button ui_control(sdf::Button)
 
 
-
-#endif // Button_h__2013_8_1__14_27

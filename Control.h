@@ -206,7 +206,7 @@ namespace sdf {
 		//用于计算内容长
 		int32_t contentW = 0;
 		int32_t contentH = 0;
-		
+
 		//显示宽度,包括右侧滚动条宽
 		int32_t showW_ = 0;
 		int32_t showH_ = 0;
@@ -568,6 +568,21 @@ namespace sdf {
 			parent->addSub(this);
 		}
 
+		/**
+		* 设置定时器
+		* 每隔time毫秒触发onTimer
+		* @param id
+		* @param time 毫秒时间
+		*/
+		void setTimer(uint32_t id, uint32_t time) {
+			::SetTimer(handle_, id, time, 0);
+		}
+
+		void killTimer(uint32_t id) {
+			::KillTimer(handle_, id);
+		}
+
+
 		virtual void initCreate() {
 
 		}
@@ -640,6 +655,7 @@ namespace sdf {
 
 #include "View.h"
 #include "Button.h"
+#include "ImageView.h"
 #include "ScrollView.h"
 #include "TextBox.h"
 #include "ListBox.h"

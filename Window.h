@@ -153,20 +153,7 @@ namespace sdf {
         }
 
 
-        /**
-         * 设置定时器
-         * 每隔time毫秒触发onTimer
-         * @param id
-         * @param time 毫秒时间
-         */
-        void setTimer(uint32_t id, uint32_t time) {
-            ::SetTimer(handle_, id, time, 0);
-        }
-
-        void killTimer(uint32_t id) {
-            ::KillTimer(handle_, id);
-        }
-
+     
         void AdjustLayout();
 
         static int GetScreenWidth() {

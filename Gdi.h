@@ -220,9 +220,12 @@ namespace sdf {
 
 
 
-		inline void ReleaseDc() const {
-			if (hdc_)
+		inline void ReleaseDc() {
+			if (hdc_) {
 				::DeleteDC(hdc_);
+				hdc_ = nullptr;
+			}
+				
 		}
 
 		void Init(Control& cont);

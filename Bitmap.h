@@ -27,8 +27,9 @@ namespace sdf
 		int height_;
 		char* imgBuf_;
 		bool hasAlpha = true;
-
+		Gdiplus::Image* imgp_ = 0;
 	public:
+		
 		Bitmap()
 			: img_(0)
 			, width_(0)
@@ -75,8 +76,12 @@ namespace sdf
 		{
 			ReleaseBmp();
 			ReleaseDc();
+			releaseImg();
 		}
 
+		Gdiplus::Image* getImg() {
+			return imgp_;
+		}
 		//从资源文件中加载
 		bool Load(int id, const df::CC& resType = tcc_("png"));
 
@@ -125,12 +130,11 @@ namespace sdf
 		}
 
 
-
 		///创建并关联32位ARGB位图
 		//返回像素数据首指针(大小w*h*4)
 		char* CreateDib(int w, int h);
 
-		BOOL Create(int w, int h)
+		BOOL CreateBitmap(int w, int h)
 		{
 			Init();
 			img_ = ::CreateCompatibleBitmap(GetScreen().GetDc(), w, h);
@@ -223,10 +227,21 @@ namespace sdf
 		}
 
 	protected:
+
+		void releaseImg() {
+			if (imgp_) {
+				delete imgp_;
+				imgp_ = 0;
+			}
+		}
 		void ReleaseBmp()
 		{
-			if (img_)
+			if (img_) {
 				::DeleteObject(img_);
+				img_ = 0;
+			}
+			
+				
 		}
 
 		void releaseOld() {

@@ -94,7 +94,7 @@ void sdf::Control::onMeasure() {
 	getContentWH(w, h);
 
 	if (pos.wrapX || pos.wrapY) {
-		//wrap样式,提前计算所有子成员
+		//wrap,提前计算所有子成员
 		for (auto& sub : memberList_) {
 			sub->onMeasure();
 		}
@@ -181,7 +181,7 @@ void sdf::Control::onMeasure() {
 	}
 
 	if (pos.flexY > 0) {
-		//查找所有邻居
+
 		if (parent_->pos.h > 0) {
 			if (parent_->pos.vector)
 				pos.h = (parent_->pos.h - flexHsum - parent_->pos.paddingTop - parent_->pos.paddingBottom) * pos.flexY /
@@ -958,9 +958,8 @@ void sdf::View::onDraw() {
 	else {
 		//COUT(tt_("重绘view"));
 
-		Control::drawStyle(this, style, text);
-
-		drawMember(gdi_);
+		if (Control::drawStyle(this, style, text))
+			drawMember(gdi_);
 	}
 
 }
@@ -980,26 +979,39 @@ void sdf::ScrollView::onMeasure()
 		sub->onMeasure();
 		if (pos.vector) {
 			contentH += sub->showH_;
+			if (sub->showW_ > contentW)
+				contentW = sub->showW_;
 		}
 		else {
 			contentW += sub->showW_;
+			if (sub->showH_ > contentH)
+				contentH = sub->showH_;
 		}
 
 
 	}
+	int w = pos.w, h = pos.h;
 
 	if (contentW > pos.w) {
-		pos.h -= getScrollWidth();
+		pos.h = h - getScrollWidth();
+	}
+	if (contentH > pos.h) {
+		pos.w = w - getScrollWidth();
+	}
+
+	if (contentW > pos.w) {
+		pos.h = h - getScrollWidth();
 		//horiPos = 0;
 		horiPage = pos.w / fontSize;
+		if (pos.w % fontSize == 0)
+			horiPage -= 1;
+
 		horiMax = contentW / fontSize;
 		horiRemain = contentW % fontSize;
-		if (horiRemain == 0) {
+		if (horiRemain == 0)
 			horiMax -= 1;
-			horiPage -= 1;
-		}
-		addHoriPos(0);
 
+		addHoriPos(0);
 
 	}
 	else {
@@ -1009,17 +1021,18 @@ void sdf::ScrollView::onMeasure()
 	}
 
 	if (contentH > pos.h) {
-		pos.w -= getScrollWidth();
+		pos.w = w - getScrollWidth();
 		//vertPos = 0;
 		vertPage = pos.h / fontSize;
+		if (pos.h % fontSize == 0)
+			vertPage -= 1;
 		vertMax = contentH / fontSize;
 		vertRemain = contentH % fontSize;
-		if (vertRemain == 0) {
+		if (vertRemain == 0)
 			vertMax -= 1;
-			vertPage -= 1;
-		}
-		addVertPos(0);
 
+
+		addVertPos(0);
 
 	}
 	else {
@@ -1028,8 +1041,9 @@ void sdf::ScrollView::onMeasure()
 		vertMax = 0;
 	}
 
+
 	setVertScrollInfo(vertMax, vertPage);
-	setHoriScrollInfo(horiPage, horiPage);
+	setHoriScrollInfo(horiMax, horiPage);
 
 }
 
@@ -1040,22 +1054,24 @@ void sdf::ScrollView::onDraw()
 
 	COUT(tt_("scroll onDraw"));
 	updateDrawXY();
+	bool drawSub = true;
 
 	//df::TickClock([&] {
 	if (isPress) {
-		drawStyle(this, stylePress, text);
+		drawSub = drawStyle(this, stylePress, text);
 	}
 	else if (isDisable) {
-		drawStyle(this, styleDisable, text);
+		drawSub = drawStyle(this, styleDisable, text);
 	}
 	else if (isHover) {
-		drawStyle(this, styleHover, text);
+		drawSub = drawStyle(this, styleHover, text);
 	}
 	else {
-		drawStyle(this, style, text);
+		drawSub = drawStyle(this, style, text);
 	}
 	//}, 10);
-	drawMember(gdi_);
+	if (drawSub)
+		drawMember(gdi_);
 }
 
 void sdf::ScrollView::Init() {
@@ -1066,8 +1082,8 @@ void sdf::ScrollView::Init() {
 		WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,  // Styles  |BS_OWNERDRAW
 		pos.x,         // x position
 		pos.y,         // y position
-		pos.w + getScrollWidth(),        // Button width
-		pos.h,        // Button height
+		showW_,        // Button width
+		showH_,        // Button height
 		getParentHandle(),     // Parent window
 		NULL,       // No menu.
 		Control::progInstance_,
@@ -1095,7 +1111,7 @@ void sdf::ScrollView::Init() {
 	initAllSub();
 
 	setVertScrollInfo(vertMax, vertPage);
-	setHoriScrollInfo(horiPage, horiPage);
+	setHoriScrollInfo(horiMax, horiPage);
 }
 
 bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -1117,6 +1133,54 @@ bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPa
 			onDraw();
 		}
 
+		break;
+	}
+	case WM_HSCROLL:
+	{
+		SCROLLINFO si;
+		si.cbSize = sizeof(si);
+		si.fMask = SIF_ALL;
+		GetScrollInfo(hDlg, SB_HORZ, &si);
+		//当前滑块的位置
+		COUT("WM_HSCROLL:" << si.nPos);
+		switch (wParam & 0xffff)
+		{
+		case SB_TOP:
+			si.nPos = si.nMin;
+			break;
+		case SB_BOTTOM:
+			si.nPos = si.nMax;
+			break;
+		case SB_LINEUP:
+			si.nPos -= 1;
+			break;
+		case SB_LINEDOWN:
+			si.nPos += 1;
+			break;
+		case SB_PAGEUP:
+			si.nPos -= si.nPage;
+
+			break;
+		case SB_PAGEDOWN:
+			si.nPos += si.nPage;
+			break;
+		case SB_THUMBTRACK:
+			si.nPos = si.nTrackPos;
+			break;
+		default:
+			break;
+		}
+		if (si.nPos < 0) {
+			si.nPos = 0;
+		}
+		if (si.nPos > si.nMax - (int)si.nPage + 1) {
+			si.nPos = si.nMax - (int)si.nPage + 1;
+		}
+
+		si.fMask = SIF_POS;
+		horiPos = si.nPos;
+		SetScrollInfo(hDlg, SB_HORZ, &si, false);
+		onDraw();
 		break;
 	}
 	case WM_VSCROLL:
@@ -1211,6 +1275,95 @@ void sdf::View::Init() {
 	initAllSub();
 }
 
+////////////////////////////////ImageView//////////////////////////////////////////
+
+void sdf::ImageView::onDraw()
+{
+	if (!parent_)
+		return;
+
+	updateDrawXY();
+
+	if (isPress) {
+	}
+	else if (isDisable) {
+	}
+	else if (isHover) {
+	}
+	else {
+		if (Control::drawStyle(this, style, text)) {
+
+			int w = GetWidth();
+			int h = GetHeight();
+
+			Gdiplus::Rect dest(drawX, drawY, w, h);
+			if (showI >= 0 && showI < imageList_.size()) {
+				graph_->DrawImage(imageList_[showI]->getImg(), dest);
+			}
+
+			drawMember(gdi_);
+		}
+
+
+
+	}
+}
+
+void sdf::ImageView::Init() {
+	onMeasure();
+	handle_ = CreateWindow(
+		tt_("STATIC"),  // Predefined class; Unicode assumed
+		text.c_str(),      // Button text
+		WS_VISIBLE | WS_CHILD | SS_OWNERDRAW,  // Styles  |BS_OWNERDRAW
+		pos.x,         // x position
+		pos.y,         // y position
+		pos.w,        // Button width
+		pos.h,        // Button height
+		getParentHandle(),     // Parent window
+		NULL,       // No menu.
+		Control::progInstance_,
+		NULL);      // Pointer not needed.
+
+	if (!handle_) {
+		DF_ERR(tt_("CreateWindow Button failed!"));
+		return;
+	}
+
+	Control::Init();
+
+	gdi_.Init(handle_);
+	//buttonGdi_.SetPen(Pen::GetWhitePen());
+	//buttonGdi_.SetBrush(BlueBrush_);
+	//buttonGdi_.SetTextColor(Color::white);
+	//文字背景透明
+	gdi_.SetTextBackColor();
+	//背景透明
+	//gdi_.SetBrush(Brush::GetNullBrush());
+	//使用全局字体
+	gdi_.setFont(Window::GlobalFont());
+
+	prevMsgProc_ = (WNDPROC)SetWindowLongPtr(handle_, GWLP_WNDPROC, (LONG_PTR)Control::ButtonProc);
+	initAllSub();
+	if (imageList_.size() > 1) {
+		timerId = (uint32_t)(std::rand() % (INT_MAX - 1)) + 1;
+		setTimer(timerId, interval);
+	}
+}
+
+bool sdf::ImageView::ControlProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message) {
+	case WM_TIMER: {
+		showI += 1;
+		if (showI >= imageList_.size())
+			showI = 0;
+		onDraw();
+		break;
+	}
+	}
+	return false;
+}
+
 ////////////////////////////////Button//////////////////////////////////////////
 
 void sdf::Button::Init() {
@@ -1257,10 +1410,10 @@ void sdf::Button::Init() {
 }
 
 bool sdf::Button::ControlProc(HWND, UINT msg, WPARAM, LPARAM lParam) {
+	
 	switch (msg) {
-	case WM_VSCROLL:
-	{
-		printf("BUtton WM_VSCROLL\n");
+	case WM_CONTEXTMENU: {
+		COUT(tt_("button right click"));
 		break;
 	}
 	case WM_COMMAND: {
@@ -1280,6 +1433,8 @@ bool sdf::Control::drawStyle(Control* cont, ControlStyle& style, const String& t
 	int32_t drawY = cont->getDrawY();
 
 
+
+
 	RECT rect;
 	rect.left = drawX;
 	rect.top = drawY;
@@ -1288,6 +1443,14 @@ bool sdf::Control::drawStyle(Control* cont, ControlStyle& style, const String& t
 
 	int w = cont->GetWidth();
 	int h = cont->GetHeight();
+
+	if (drawX + w< cont->parent_->drawX || drawX>cont->parent_->drawX + cont->parent_->GetWidth() ||
+		drawY + h< cont->parent_->drawY || drawY>cont->parent_->drawY + cont->parent_->GetHeight()
+
+		) {
+
+		return false;
+	}
 
 	if (buttonBmp_.GetWidth() < drawX + w || buttonBmp_.GetHeight() < drawY + h) {
 		auto oldBmp = std::move(buttonBmp_);
@@ -1299,11 +1462,14 @@ bool sdf::Control::drawStyle(Control* cont, ControlStyle& style, const String& t
 			delete graph_;
 		graph_ = Gdiplus::Graphics::FromHDC(buttonBmp_.GetDc());
 		graph_->SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+		//双线性插值
+		graph_->SetInterpolationMode(Gdiplus::InterpolationModeBilinear);
 
 	}
 	int32_t* buf = (int32_t*)buttonBmpBuf_;
 	if (buf == nullptr)
 		return false;
+
 	int bufW = buttonBmp_.GetWidth();
 
 
@@ -1406,13 +1572,9 @@ bool sdf::Control::drawStyle(Control* cont, ControlStyle& style, const String& t
 				nH = (int32_t)(nW / ratioImg);
 				sY = drawY + (h - nH) / 2;
 			}
-			if (style.backImage->alpha()) {
-				style.backImage->DrawAlphaTo(buttonBmp_, sX, sY, nW, nH);
-			}
-			else {
-				style.backImage->DrawStretchTo(buttonBmp_, sX, sY, nW, nH);
+			Gdiplus::Rect dest(sX, sY, nW, nH);
+			graph_->DrawImage(style.backImage->getImg(), dest);
 
-			}
 		}
 		else if (style.scaleType == BitmapScaleType::centerClip) {
 			if (ratio > ratioImg) {
@@ -1424,23 +1586,14 @@ bool sdf::Control::drawStyle(Control* cont, ControlStyle& style, const String& t
 				sX = ((nW - w)) * style.backImage->GetWidth() / nW;
 
 			}
-			if (style.backImage->alpha()) {
-				style.backImage->DrawAlphaTo(buttonBmp_, drawX, drawY, w, h, style.backImage->GetWidth() - sX,
-					style.backImage->GetHeight() - sY, sX / 2, sY / 2);
-			}
-			else {
-				style.backImage->DrawStretchTo(buttonBmp_, drawX, drawY, w, h, style.backImage->GetWidth() - sX,
-					style.backImage->GetHeight() - sY, sX / 2, sY / 2);
+			//graph_->ScaleTransform(nW/ style.backImage->GetWidth(), nH/ style.backImage->GetHeight());
 
-			}
+			Gdiplus::Rect dest(drawX, drawY, w, h);
+			graph_->DrawImage(style.backImage->getImg(), dest, sX / 2, sY / 2, style.backImage->GetWidth() - sX, style.backImage->GetHeight() - sY, Gdiplus::UnitPixel);
 		}
 		else {
-			if (style.backImage->alpha()) {
-				style.backImage->DrawAlphaTo(buttonBmp_, sX, sY, nW, nH);
-			}
-			else {
-				style.backImage->DrawStretchTo(buttonBmp_, sX, sY, nW, nH);
-			}
+			Gdiplus::Rect dest(sX, sY, nW, nH);
+			graph_->DrawImage(style.backImage->getImg(), dest);
 		}
 
 
@@ -1452,7 +1605,7 @@ bool sdf::Control::drawStyle(Control* cont, ControlStyle& style, const String& t
 		cont->onDrawText(rect);
 	}
 
-	return false;
+	return true;
 }
 
 void sdf::Button::onDraw() {
@@ -1464,25 +1617,28 @@ void sdf::Button::onDraw() {
 
 	updateDrawXY();
 
+	bool drawSub = true;
+
 	//df::TickClock([&] {
 	if (isPress) {
-		drawStyle(this, stylePress, text);
+		drawSub = drawStyle(this, stylePress, text);
 	}
 	else if (isDisable) {
-		drawStyle(this, styleDisable, text);
+		drawSub = drawStyle(this, styleDisable, text);
 	}
 	else if (isHover) {
-		drawStyle(this, styleHover, text);
+		drawSub = drawStyle(this, styleHover, text);
 	}
 	else if (isCheck) {
-		drawStyle(this, styleCheck, text);
+		drawSub = drawStyle(this, styleCheck, text);
 	}
 	else {
-		drawStyle(this, style, text);
+		drawSub = drawStyle(this, style, text);
 	}
 	//}, 10);
 
-	drawMember(buttonGdi_);
+	if (drawSub)
+		drawMember(buttonGdi_);
 
 
 }
@@ -1747,7 +1903,7 @@ void sdf::CheckBox::onDrawText(RECT& rect)
 	int32_t size = (int32_t)(1 * Window::getScale());
 	int32_t w = pos.h - pos.paddingTop - pos.paddingBottom;
 	int bufW = buttonBmp_.GetWidth();
-	int32_t* buf = (int32_t*)buttonBmpBuf_;
+	uint32_t* buf = (uint32_t*)buttonBmpBuf_;
 
 	uint32_t borderColor = style.borderColor;
 	if (isCheck || isHover || isPress || isFocused) {
@@ -1900,24 +2056,21 @@ bool sdf::Bitmap::Load(const df::CC& name) {
 	wName = wStr.c_str();
 #endif // !UNICODE
 
-	Gdiplus::Image* img = new Gdiplus::Image(wName);
+	releaseImg();
+	imgp_ = new Gdiplus::Image(wName);
 
-	ON_SCOPE_EXIT({
-					  delete img;
-		});
 
-	if (img == nullptr || img->GetLastStatus() != Gdiplus::Ok) {
+	if (imgp_ == nullptr || imgp_->GetLastStatus() != Gdiplus::Ok) {
+		width_ = 1;
+		height_ = 1;
 		DF_ERR(name << tcc_(" Gdiplus Load Image failed!"));
 		return false;
 	}
-	auto alpha = img->GetPixelFormat() & PixelFormatAlpha;
+	auto alpha = imgp_->GetPixelFormat() & PixelFormatAlpha;
 	hasAlpha = !!alpha;
+	width_ = imgp_->GetWidth();
+	height_ = imgp_->GetHeight();
 
-	if (CreateDib(img->GetWidth(), img->GetHeight()) == nullptr)
-		return false;
-
-	Gdiplus::Graphics g(hdc_);
-	g.DrawImage(img, 0, 0, width_, height_);
 	return true;
 
 }
@@ -1955,25 +2108,24 @@ bool sdf::Bitmap::Load(int id, const df::CC& resType /*= tcc_("png")*/) {
 	IStream* pstm;
 	CreateStreamOnHGlobal(m_hMem, FALSE, &pstm);
 	// load from stream
-	Gdiplus::Image* img = Gdiplus::Image::FromStream(pstm);
+	releaseImg();
+	imgp_ = Gdiplus::Image::FromStream(pstm);
 
 	ON_SCOPE_EXIT({
-					  delete img;
 					  ::GlobalUnlock(m_hMem);
 					  pstm->Release();
 					  ::GlobalFree(m_hMem);
 		});
 
-	if (img == nullptr || img->GetLastStatus() != Gdiplus::Ok) {
+	if (imgp_ == nullptr || imgp_->GetLastStatus() != Gdiplus::Ok) {
+		width_ = 1;
+		height_ = 1;
 		DF_ERR(id << tcc_(" Gdiplus Load Image failed! type:") << resType);
 		return false;
 	}
+	width_ = imgp_->GetWidth();
+	height_ = imgp_->GetHeight();
 
-	if (CreateDib(img->GetWidth(), img->GetHeight()) == nullptr)
-		return false;
-
-	Gdiplus::Graphics g(hdc_);
-	g.DrawImage(img, 0, 0, width_, height_);
 
 	return true;
 }

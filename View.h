@@ -22,7 +22,10 @@ namespace sdf {
 			w = Gdi::GetScreen().GetTextPixel(text);
 		}
 
+
 		virtual void onDraw();
+
+
 
 	protected:
 		///初始化
