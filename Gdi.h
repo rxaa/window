@@ -14,6 +14,7 @@ namespace sdf {
 			black = 0xff000000,
 
 			greyLight = 0xFF888888,
+			greyFont = 0xFF333333,
 			//深灰
 			greyMid = 0xffBBBBBB,
 			//深灰

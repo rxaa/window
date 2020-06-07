@@ -10,20 +10,13 @@ namespace sdf
 	public:
 
 		bool dot = false;
-		std::function<void(CheckBox&)> onCreate_;
 
-		CheckBox(Control* parent, bool dot = false) :dot(dot) {
-			setParent(parent);
+		CheckBox(bool dot = false) :dot(dot) {
+			pos.padding(5);
 			style.borderColor = Color::greyMid;
 			styleDisable.borderColor = Color::grey;
 			styleHover.borderColor = Color::blue;
-			if (parent && parent->style.backColor)
-				setBackColor(parent->style.backColor);
-			else
-				setBackColor(Color::white);
 		}
-
-
 
 		virtual ~CheckBox() {
 			//COUT(tt_("gone"));
@@ -36,13 +29,6 @@ namespace sdf
 		virtual void onDrawText(RECT& rect);
 
 	protected:
-		///初始化
-		virtual void initCreate()
-		{
-			pos.padding(5);
-			doCreate(this);
-		}
-
 
 		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
 	};
@@ -50,18 +36,9 @@ namespace sdf
 
 	class CheckGroup :public View {
 	public:
-		std::function<void(CheckGroup&)> onCreate_;
-
-		CheckGroup(Control* parent) :View(parent) {
-			if (parent && parent->style.backColor)
-				setBackColor(parent->style.backColor);
-			else
-				setBackColor(Color::white);
+		CheckGroup() {
 		}
 
-		virtual void initCreate() {
-			doCreate(this);
-		}
 
 		//返回选中成员索引
 		//没有选中则返回-1

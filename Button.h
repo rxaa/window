@@ -5,27 +5,40 @@ namespace sdf
 	class Button
 		: public Control
 	{
-		//绘图回调
 	protected:
-		Button() {
-		}
+
 	public:
 		Gdi buttonGdi_;
 		//事件
-		std::function<void(Button&)> onCreate_;
 		std::function<void()> onClick_;
+		Button& v{ *this };
 
-	
 		bool oldStyle = false;
 		bool isCheck = false;
 		ControlStyle styleCheck;
-		Button(Control* parent)
+		Button()
 		{
-			setColorDark(Color::blueColor_);
-
 			pos.paddingX(10);
 			pos.paddingY(6);
-			setParent(parent);
+		}
+
+		static void setMenuStyle(sdf::Button*  but) {
+			but->pos.paddingX(12);
+			but->pos.paddingY(7);
+			but->style.backColor = Color::white;
+			but->style.color = Color::black;
+			but->styleHover.backColor = Color::blueLight;
+			//but->styleHover.border(1);
+			//but->styleHover.borderColor = Color::blue;
+
+			but->stylePress = but->styleHover;
+			but->stylePress.shadowSize = 3;
+
+			but->styleDisable = but->style;
+			but->styleDisable.color = Color::darkGrey;
+
+			but->styleCheck = but->style;
+			but->styleFocused = but->style;
 		}
 
 		void setBackColor(int32_t color) {
@@ -41,7 +54,7 @@ namespace sdf
 			style.color = Color::black;
 			style.backColor = col;
 			styleHover = style;
-			 
+
 			styleHover.backColor = Color::mixColor(style.backColor, 10);
 			stylePress = styleHover;
 			stylePress.shadowSize = 5;
@@ -85,11 +98,12 @@ namespace sdf
 		}
 
 		virtual void getContentWH(int32_t& w, int32_t& h) {
-			h = GlobalFont().GetFontSize();
 			w = Gdi::GetScreen().GetTextPixel(text);
+			if (w > 0)
+				h = GlobalFont().GetFontSize();
 		}
 
-	
+
 
 		virtual void onDraw();
 
@@ -97,9 +111,6 @@ namespace sdf
 	protected:
 		friend View;
 
-		virtual void initCreate() {
-			doCreate(this);
-		}
 		//初始化位于initCreate之后执行
 		virtual void Init();
 
@@ -108,7 +119,7 @@ namespace sdf
 	};
 
 
-
+	typedef  std::shared_ptr<sdf::Button> PtrButton;
 }
 
 

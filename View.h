@@ -6,11 +6,11 @@ namespace sdf {
 		: public Control {
 	public:
 		Gdi gdi_;
-		std::function<void(View&)> onCreate_;
+		View& v;
 
-		View(Control* parent) {
-			setParent(parent);
+		View():v(*this) {
 		}
+
 
 		virtual ~View() {
 			//COUT(tt_("gone"));
@@ -18,8 +18,10 @@ namespace sdf {
 
 	
 		virtual void getContentWH(int32_t& w, int32_t& h) {
-			h = GlobalFont().GetFontSize();
 			w = Gdi::GetScreen().GetTextPixel(text);
+			if (w > 0) 
+				h = GlobalFont().GetFontSize();
+			
 		}
 
 
@@ -30,15 +32,13 @@ namespace sdf {
 	protected:
 		///初始化
 		virtual void Init();
-		virtual void initCreate() {
-			doCreate(this);
-		}
 		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) override {
 			return true;
 		}
 
 	};
 
+	typedef  std::shared_ptr<sdf::View> PtrView;
 }
 
 #define ui_view ui_control(sdf::View) 

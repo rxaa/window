@@ -7,18 +7,13 @@ namespace sdf {
 		int showI = 0;
 	public:
 		Gdi gdi_;
-		std::function<void(ImageView&)> onCreate_;
 		std::vector<std::shared_ptr<Bitmap>> imageList_;
 		//间隔时间,毫秒
 		uint32_t interval = 50;
 		bool loop = true;
 		uint32_t timerId = 0;
-		ImageView(Control* parent) {
-			setParent(parent);
-			if (parent && parent->style.backColor)
-				setBackColor(parent->style.backColor);
-			else
-				setBackColor(Color::white);
+		ImageView() {
+
 		}
 
 		virtual ~ImageView() {
@@ -28,11 +23,11 @@ namespace sdf {
 			}
 		}
 
-	
+
 		template <class T, class ...Args>
 		void add(T head, Args... rest) {
 			imageList_.push_back(head);
-            add(rest...);
+			add(rest...);
 		}
 
 		void add() {
@@ -40,17 +35,19 @@ namespace sdf {
 		}
 
 		virtual void getContentWH(int32_t& w, int32_t& h) {
-			h = GlobalFont().GetFontSize();
 			w = Gdi::GetScreen().GetTextPixel(text);
+			if (w > 0) {
+				h = GlobalFont().GetFontSize();
+			}
 		}
 
 		virtual void onDraw();
 
-	protected:
-		///初始化
-		virtual void Init();
-		virtual void initCreate() {
-			doCreate(this);
+		virtual void doCreate() override {
+
+
+			Control::doCreate();
+
 			if (imageList_.size() > 0) {
 				auto& img = *imageList_[0];
 				if (pos.w > 0 && pos.h < 0) {
@@ -68,9 +65,16 @@ namespace sdf {
 			}
 		}
 
+	protected:
+		///初始化
+		virtual void Init();
+
+
 		virtual bool ControlProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) override;
 
 	};
+
+	typedef  std::shared_ptr<sdf::ImageView> PtrImage;
 
 }
 

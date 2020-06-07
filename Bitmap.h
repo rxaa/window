@@ -18,6 +18,8 @@ namespace sdf
 		repeatXY,
 	};
 
+
+
 	class Bitmap :public Gdi
 	{
 		DF_DISABLE_COPY_ASSIGN(Bitmap)
@@ -29,7 +31,7 @@ namespace sdf
 		bool hasAlpha = true;
 		Gdiplus::Image* imgp_ = 0;
 	public:
-		
+
 		Bitmap()
 			: img_(0)
 			, width_(0)
@@ -240,8 +242,8 @@ namespace sdf
 				::DeleteObject(img_);
 				img_ = 0;
 			}
-			
-				
+
+
 		}
 
 		void releaseOld() {
@@ -261,8 +263,7 @@ namespace sdf
 	};
 
 
-
-
+	typedef  std::shared_ptr<sdf::Bitmap> PtrBmp;
 
 }
 

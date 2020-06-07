@@ -10,12 +10,10 @@ namespace sdf {
         bool mutiSelect = false;
         bool mutiColumn = false;
         std::function<void()> onClick_;
-        std::function<void(ListBox &)> onCreate_;
 
 
-        ListBox(Control *parent)
+        ListBox()
                 : textLength_(0) {
-            setParent(parent);
         }
 
         inline void clear() {
@@ -87,8 +85,6 @@ namespace sdf {
         std::unique_ptr<std::vector<String>> initList;
 
         ///初始化
-        virtual void initCreate();
-
         virtual void Init();
 
         virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;

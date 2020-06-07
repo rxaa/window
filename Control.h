@@ -76,6 +76,7 @@ namespace sdf {
 		int32_t marginTop = 0;
 		int32_t marginRight = 0;
 		int32_t marginBottom = 0;
+
 		int16_t flexX = 0;
 		int16_t flexY = 0;
 
@@ -87,6 +88,9 @@ namespace sdf {
 
 		//使用绝对坐标
 		bool absolute = false;
+
+		//是否已进行过dpi scale转换
+		bool scaleMeasured = false;
 
 		void flex(int32_t flex) {
 			flexX = flex;
@@ -163,22 +167,23 @@ namespace sdf {
 		bool _centerInParentY = false;
 	};
 
-	class Control : std::enable_shared_from_this<Control> {
+	class Control :public std::enable_shared_from_this<Control> {
+		DF_DISABLE_COPY_ASSIGN(Control);
 	protected:
 		HWND handle_ = 0;
 
 		Control* parent_ = nullptr;
 
-		int32_t showX_ = 0;
-		int32_t showY_ = 0;
+		
 
 		friend class Tray;
 		friend class View;
 		friend class Button;
 		friend struct WinHandle;
+		friend class ImageView;
 		//最近一次创建的窗口,用于OnInit
-		static DF_THREAD_LOCAL_VAR HWND currentHandle_;
-		static DF_THREAD_LOCAL_VAR Window* parentWindow_;
+		static HWND currentHandle_;
+		static Window* parentWindow_;
 		static Window* currentWindow_;
 
 
@@ -192,17 +197,30 @@ namespace sdf {
 		static Bitmap buttonBmp_;
 		static char* buttonBmpBuf_;
 		static Gdiplus::Graphics* graph_;
+		//相对于父容器的坐标
+		int32_t showX_ = 0;
+		int32_t showY_ = 0;
 
+		//相对于背景画布的坐标
 		int32_t drawX = 0;
+		int32_t drawY = 0;
+
+		//最后一次绘制的样式
+		ControlStyle* lastDrawStyle = 0;
+
 		//是否需要绘制到屏幕
 		bool needDraw = true;
-		int32_t drawY = 0;
+		//是否顶层节点
+		bool isTop = false;
 	public:
+		std::function<void()> onCreate_;
 		friend Window;
 		bool isHover = false;
 		bool isFocused = false;
 		bool isDisable = false;
 		bool isPress = false;
+
+
 		//用于计算内容长
 		int32_t contentW = 0;
 		int32_t contentH = 0;
@@ -218,9 +236,11 @@ namespace sdf {
 		ControlStyle styleHover;
 		ControlStyle styleDisable;
 		ControlStyle styleFocused;
+
+
 		String text;
 		//所有成员控件列表
-		std::vector<std::unique_ptr<Control>> memberList_;
+		std::vector<std::shared_ptr<Control>> memberList_;
 
 
 		static HINSTANCE progInstance_;
@@ -233,7 +253,21 @@ namespace sdf {
 			ReleaseUserData();
 		}
 
-		static bool drawStyle(Control* cont, ControlStyle& style, const String& text);
+		template<typename Derived>
+		inline std::shared_ptr<Derived> sharedBase() {
+			//return std::shared_ptr<Derived>(static_cast<Derived*>(this));
+			return std::static_pointer_cast<Derived>(shared_from_this());
+		}
+
+		/// <summary>
+		/// 绘制style
+		/// </summary>
+		/// <param name="cont"></param>
+		/// <param name="style"></param>
+		/// <param name="text"></param>
+		/// <param name="parentBack">当背景为空时使用父级背景</param>
+		/// <returns></returns>
+		static bool drawStyle(Control* cont, ControlStyle& style, const String& text, bool parentBack = false);
 
 		void setBackColor(int32_t color) {
 			style.backColor = color;
@@ -295,8 +329,7 @@ namespace sdf {
 			return handle_;
 		}
 
-		///用资源标识符初始化
-		virtual void Init();
+
 
 		virtual void onHover() {
 
@@ -309,6 +342,8 @@ namespace sdf {
 		virtual void onDraw() {
 
 		}
+
+
 
 
 		virtual void onDrawText(RECT& rect) {
@@ -366,7 +401,7 @@ namespace sdf {
 			showX_ = x;
 			showY_ = y;
 			if (handle_)
-				return ::SetWindowPos(handle_, 0, x, y, 0, 0, SWP_NOSIZE | SWP_NOREDRAW | SWP_NOZORDER | SWP_NOCOPYBITS);
+				return ::SetWindowPos(handle_, 0, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOREDRAW);
 			return false;
 		}
 
@@ -516,6 +551,12 @@ namespace sdf {
 			//::UpdateWindow(handle_);
 		}
 
+		void addSub(const std::shared_ptr<Control>& control) {
+			control->parent_ = this;
+			memberList_.push_back(control);
+		}
+
+
 		//*******************************************
 		// Summary : 返回false取消此消息
 		// Returns - bool :
@@ -535,6 +576,8 @@ namespace sdf {
 		int32_t measureX_ = 0;
 		int32_t measureY_ = 0;
 
+		void measureWrapX(int32_t minW);
+		void measureWrapY(int32_t minH);
 		static void adjustRecur(sdf::Control* cont) {
 			cont->measureX_ = 0;
 			cont->measureY_ = 0;
@@ -559,14 +602,6 @@ namespace sdf {
 
 		static intptr_t controlComProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
-		void addSub(Control* control) {
-			memberList_.push_back(std::unique_ptr<Control>(control));
-		}
-
-		void setParent(Control* parent) {
-			parent_ = parent;
-			parent->addSub(this);
-		}
 
 		/**
 		* 设置定时器
@@ -582,40 +617,11 @@ namespace sdf {
 			::KillTimer(handle_, id);
 		}
 
+		///执行measure, 创建窗口句柄, 初始化所有子view
+		virtual void Init();
 
-		virtual void initCreate() {
 
-		}
-
-		template<class T>
-		void doCreate(T inst) {
-			if (inst->onCreate_) {
-				inst->onCreate_(*inst);
-				if (pos.w < 0 && pos.flexX < 1)
-					pos.wrapX = true;
-
-				if (pos.h < 0 && pos.flexY < 1)
-					pos.wrapY = true;
-
-				/*            if (style.backImage) {
-								if (pos.w > 0 && pos.h < 0) {
-									pos.h = pos.w * style.backImage->GetHeight() / style.backImage->GetWidth();
-								} else if (pos.h > 0 && pos.w < 0) {
-									pos.w = pos.h * style.backImage->GetWidth() / style.backImage->GetHeight();
-								} else if (pos.h < 0 && pos.w < 0) {
-									pos.h = style.backImage->GetHeight();
-									pos.w = style.backImage->GetWidth();
-								}
-							}*/
-
-				for (auto& con : memberList_) {
-					con->initCreate();
-					Window::scalePos(con->pos);
-				}
-
-				inst->onCreate_ = 0;
-			}
-		}
+		virtual void doCreate();
 
 		void initAllSub() {
 			measureX_ = 0;
@@ -625,7 +631,7 @@ namespace sdf {
 			}
 		}
 
-		DF_DISABLE_COPY_ASSIGN(Control);
+
 	};
 
 	struct WinHandle {
@@ -646,11 +652,12 @@ namespace sdf {
 
 	};
 
-
+	typedef  std::shared_ptr<sdf::Control> PtrControl;
 }
 
-#define ui_control(Name_) Name_ * DF_MIX_LINENAME(UIBUTTON, __LINE__)=new Name_(&v);DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&](Name_ &v)
-#define ui_control2(Name_,Paras_) Name_ * DF_MIX_LINENAME(UIBUTTON, __LINE__)=new Name_(&v,Paras_);DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&](Name_ &v)
+
+#define ui_control(Name_) std::shared_ptr<Name_> DF_MIX_LINENAME(UIBUTTON, __LINE__)=std::make_shared<Name_>();v.addSub(DF_MIX_LINENAME(UIBUTTON, __LINE__));DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&,&v=*DF_MIX_LINENAME(UIBUTTON, __LINE__)]()
+#define ui_control2(Name_,Paras_) std::shared_ptr<Name_> DF_MIX_LINENAME(UIBUTTON, __LINE__)=std::make_shared<Name_>(Paras_);v.addSub(DF_MIX_LINENAME(UIBUTTON, __LINE__));DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&,&v=*DF_MIX_LINENAME(UIBUTTON, __LINE__)]()
 
 
 #include "View.h"
@@ -663,6 +670,7 @@ namespace sdf {
 #include "CheckBox.h"
 #include "Tray.h"
 #include "Window.h"
+#include "FormMenu.h"
 
 
 #endif // Control_h__2013_8_1__9_24

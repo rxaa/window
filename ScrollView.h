@@ -17,17 +17,14 @@ namespace sdf
 		int32_t horiPos = 0;
 		int32_t horiRemain = 0;
 	public:
-		std::function<void(ScrollView&)> onCreate_;
 
-
-		ScrollView(Control* parent) {
-			setParent(parent);
+		ScrollView() {
 			pos.vector = true;
-			if (parent && parent->style.backColor)
-				setBackColor(parent->style.backColor);
-			else
-				setBackColor(Color::white);
 		}
+
+		/*virtual void doCreate() override {
+			Control::doCreate();
+		}*/
 
 		static int getScrollWidth() {
 			return  GetSystemMetrics(SM_CXVSCROLL);
@@ -110,15 +107,12 @@ namespace sdf
 
 		virtual void onDraw();
 
-		virtual void initCreate() {
-			doCreate(this);
-		}
-
-		///初始化
 		virtual void Init();
 
 		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
 	};
+
+	typedef  std::shared_ptr<sdf::ScrollView> PtrScrollView;
 
 }
 

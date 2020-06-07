@@ -15,14 +15,13 @@ namespace sdf
 		bool password = false;
 		bool readOnly = false;
 
-		std::function<void(TextBox&)> onCreate_;
-
 		std::function<void()> onChange_;
 		std::function<void()> onFocus_;
 		std::function<void()> onLeave_;
 
-		TextBox(Control* parent) {
-			setParent(parent);
+		TextBox() {
+			pos.w = Control::GlobalFont().getRawSize() * 5;
+			pos.h = Control::GlobalFont().getRawSize() + 5;
 		}
 
 		virtual ~TextBox() {
@@ -35,10 +34,10 @@ namespace sdf
 		}
 
 	protected:
+
 		///初始化
-		virtual void initCreate();
 		virtual void Init();
-		
+
 
 		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
 	};

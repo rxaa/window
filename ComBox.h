@@ -8,13 +8,13 @@ namespace sdf
 		: public Control
 	{
 	public:
-		std::function<void(ComBox&)> onCreate_;
 		std::function<void()> onSelectChange_;
 		std::function<void()> onChange_;
 		bool editAble = false;
 
-		ComBox(Control* parent) {
-			setParent(parent);
+		ComBox() {
+			pos.w = Control::GlobalFont().getRawSize() * 5;
+			pos.h = Control::GlobalFont().getRawSize() + 7;
 		}
 		virtual ~ComBox() {
 
@@ -53,7 +53,7 @@ namespace sdf
 		}
 
 
-		inline int add(const df::CC & str)
+		inline int add(const df::CC& str)
 		{
 			if (!handle_) {
 				if (!initList)
@@ -63,7 +63,7 @@ namespace sdf
 				return 0;
 			}
 
-			int i = (int) SendMessage(handle_, CB_ADDSTRING, 0, (LPARAM) str.char_);
+			int i = (int)SendMessage(handle_, CB_ADDSTRING, 0, (LPARAM)str.char_);
 			return i;
 		}
 
@@ -93,7 +93,6 @@ namespace sdf
 		std::unique_ptr<std::vector<String>> initList;
 
 		///初始化
-		virtual void initCreate();
 		virtual void Init();
 		bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
 
