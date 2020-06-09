@@ -28,7 +28,6 @@ namespace sdf {
 		virtual void onDraw();
 
 
-
 	protected:
 		///初始化
 		virtual void Init();

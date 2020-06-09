@@ -30,6 +30,7 @@ namespace sdf
 
 		virtual void onDraw() {
 			//COUT(tt_("重绘TextBox"));
+			updateDrawXY();
 			update();
 		}
 

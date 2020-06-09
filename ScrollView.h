@@ -20,11 +20,18 @@ namespace sdf
 
 		ScrollView() {
 			pos.vector = true;
+			drawBuff_ = new DrawBuffer();
+		}
+		virtual ~ScrollView() {
+			if (drawBuff_)
+				delete drawBuff_;
 		}
 
-		/*virtual void doCreate() override {
+		virtual void doCreate() override {
 			Control::doCreate();
-		}*/
+		}
+
+		
 
 		static int getScrollWidth() {
 			return  GetSystemMetrics(SM_CXVSCROLL);
@@ -103,11 +110,13 @@ namespace sdf
 			return vertPos * Control::GlobalFont().GetFontSize();
 		}
 
-		virtual void onMeasure();
+		virtual void onMeasure() override;
 
-		virtual void onDraw();
+		virtual void onDraw() override;
 
-		virtual void Init();
+		virtual void Init() override;
+
+	
 
 		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
 	};

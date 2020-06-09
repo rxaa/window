@@ -13,10 +13,6 @@ sdf::Window* sdf::Control::currentWindow_ = nullptr;
 
 sdf::Control* sdf::Control::mouseHandle_ = 0;
 
-sdf::Bitmap sdf::Control::buttonBmp_;
-char* sdf::Control::buttonBmpBuf_ = nullptr;
-
-Gdiplus::Graphics* sdf::Control::graph_ = 0;
 
 int  sdf::Window::mouseY_ = 0;
 
@@ -176,6 +172,7 @@ void sdf::Control::onMeasure() {
 				isRight = true;
 			}
 
+
 			if (sub->pos.flexX > 0)
 				flexXsum += sub->pos.flexX;
 			else if (sub->pos.w > 0) {
@@ -198,8 +195,8 @@ void sdf::Control::onMeasure() {
 				pos.w = parent_->pos.w - parent_->pos.paddingLeft - parent_->pos.paddingRight - pos.marginLeft -
 				pos.marginRight;
 			else
-				pos.w = (parent_->pos.w - parent_->pos.paddingLeft - parent_->pos.paddingRight - flexWsum) * pos.flexX /
-				flexXsum - pos.marginLeft - pos.marginRight;
+				pos.w = (int32_t)std::round((parent_->pos.w - parent_->pos.paddingLeft - parent_->pos.paddingRight - flexWsum) * pos.flexX /
+					(float)flexXsum) - pos.marginLeft - pos.marginRight;
 		}
 	}
 	else if (pos.wrapX) {
@@ -213,10 +210,10 @@ void sdf::Control::onMeasure() {
 
 		if (parent_->pos.h > 0) {
 			if (parent_->pos.vector)
-				pos.h = (parent_->pos.h - flexHsum - parent_->pos.paddingTop - parent_->pos.paddingBottom) * pos.flexY /
-				flexYsum - pos.marginTop - pos.marginBottom;
+				pos.h = (int32_t)std::round((parent_->pos.h - flexHsum - parent_->pos.paddingTop - parent_->pos.paddingBottom) * pos.flexY /
+					(float)flexYsum) - pos.marginTop - pos.marginBottom;
 			else
-				pos.w = parent_->pos.h - pos.marginTop - pos.marginBottom - parent_->pos.paddingTop -
+				pos.h = parent_->pos.h - pos.marginTop - pos.marginBottom - parent_->pos.paddingTop -
 				parent_->pos.paddingBottom;
 		}
 	}
@@ -281,6 +278,7 @@ void sdf::Control::Init() {
 }
 
 void sdf::Control::doCreate() {
+
 	if (onCreate_) {
 		onCreate_();
 		onCreate_ = nullptr;
@@ -289,13 +287,13 @@ void sdf::Control::doCreate() {
 
 		if (pos.h < 0 && pos.flexY < 1)
 			pos.wrapY = true;
-
-		for (auto& con : memberList_) {
-			con->doCreate();
-		}
 	}
-
+	for (auto& con : memberList_) {
+		con->doCreate();
+	}
 	Window::scalePos(pos);
+
+
 }
 
 
@@ -310,16 +308,31 @@ void sdf::Brush::SetFromBitmap(Bitmap& bmp) {
 
 
 
-void sdf::Control::drawMember(Gdi& gdi) {
+void sdf::Control::drawMember(Gdi& gdi, DrawBuffer* draw) {
 	needDraw = false;
 	ON_SCOPE_EXIT({
 					  needDraw = true;
 		});
 	for (auto& sub : memberList_) {
+
+		if (sub->showOverflow()) {
+			continue;
+		}
+		/*int32_t hp = getHoriPos();
+		int32_t vp = getVertPos();
+
+		if (sub->pos.y - vp > GetHeight() && sub->showY_ > GetHeight()) {
+			continue;
+		}
+		if (sub->pos.y - vp + sub->pos.h < 0 && sub->showY_ + sub->pos.h < 0) {
+			continue;
+		}*/
 		sub->onDraw();
 	}
-	if (parent_->needDraw)
-		gdi.DrawFrom(Control::buttonBmp_, 0, 0, pos.w, pos.h, drawX, drawY);
+	if (parent_->needDraw && draw) {
+		gdi.DrawFrom(draw->buttonBmp_, 0, 0, pos.w, pos.h, drawX_, drawY_);
+	}
+
 }
 
 LRESULT  __stdcall sdf::Control::ButtonProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -342,8 +355,13 @@ LRESULT  __stdcall sdf::Control::ButtonProc(HWND hDlg, UINT message, WPARAM wPar
 		break;
 	}
 	Control* cont = GetUserData(hDlg);
-	if (cont)
-		cont->ControlProc(hDlg, message, wParam, lParam);
+	if (cont) {
+
+		auto contRes = cont->ControlProc(hDlg, message, wParam, lParam);
+		if (!contRes)
+			return  0;
+	}
+
 
 	auto res = controlComProc(hDlg, message, wParam, lParam);
 	if (res) {
@@ -360,7 +378,17 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 	//COUT((int*)message);
 	sdf::Control* cont = sdf::Window::GetUserData(hDlg);
 	switch (message) {
-
+	case WM_CTLCOLOREDIT: {
+		//文本样式
+		HDC hdc = (HDC)wParam;
+		HWND hwnd = (HWND)lParam;
+		if (cont->style.color) {
+			SetTextColor(hdc, Color::toRGB(Color::red));
+			//SetBkMode(hdc, TRANSPARENT);
+			return (intptr_t)Brush::GetWhiteBrush();
+		}
+		return 0;
+	}
 	case WM_CTLCOLORBTN: {
 		//绘制控件背景,(自绘控件仍触发)
 		//Control* controlP = GetUserData((HWND)lParam);
@@ -374,6 +402,7 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 		LPDRAWITEMSTRUCT lpDIS = (LPDRAWITEMSTRUCT)lParam;
 		sdf::Control* controlP = sdf::Window::GetUserData(lpDIS->hwndItem);
 		if (controlP) {
+
 			if (lpDIS->itemState & ODS_SELECTED) {
 				controlP->isPress = true;
 			}
@@ -390,7 +419,12 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 
 				}
 			}
+			/*if (controlP->showOverflow()) {
+				break;
+			}*/
+			controlP->msgDraw = true;
 			controlP->onDraw();
+			controlP->msgDraw = false;
 		}
 		break;
 	}
@@ -544,8 +578,7 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 		}
 					 //case WM_ERASEBKGND:
 
-		case Tray::TRAY_MESSAGE:
-		{
+		case Tray::TRAY_MESSAGE: {
 			//cout<<"hwnd:"<<(int)hDlg<<endl;
 			if (LOWORD(lParam) == WM_RBUTTONUP) //右键菜单
 			{
@@ -639,7 +672,10 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 
 	setPosXY();
 	DWORD sty = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VISIBLE;
+
+	//WS_EX_TRANSPARENT;
 	DWORD styEX = 0;
+
 	if (maxBox)
 		sty |= WS_MAXIMIZEBOX;
 
@@ -695,6 +731,9 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 
 	ptr_ = sharedBase<Window>();
 
+	if (pos.w > 0 && pos.h > 0)
+		drawBuff_->newBmp(pos.w, pos.h);
+
 	InitWinData();
 	::SendMessage(handle_, WM_SETFONT, (WPARAM)Window::GlobalFont().GetFont(), TRUE);
 
@@ -714,6 +753,7 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 		::SetWindowPos(handle_, 0, pos.x, pos.y, pos.w + borderSize_, pos.h + titleHeight_ + borderSize_,
 			SWP_NOZORDER | SWP_NOCOPYBITS);
 	}
+
 
 
 	::ShowWindow(handle_, show);
@@ -1011,7 +1051,6 @@ void sdf::View::onDraw() {
 	if (!parent_)
 		return;
 
-	updateDrawXY();
 
 	if (isPress) {
 	}
@@ -1021,14 +1060,18 @@ void sdf::View::onDraw() {
 	}
 	else {
 
-		if (parent_->needDraw && !parent_->isTop) {
+		if (msgDraw && !parent_->isTop) {
 			//作为子成员无需单独绘制
 			return;
 		}
-		//COUT(tt_("重绘view"));
-		if (Control::drawStyle(this, style, text)) {
-			drawMember(gdi_);
+		auto draw = getDraw();
 
+		updateDrawXY();
+
+		//COUT(tt_("重绘view"));
+		if (drawStyle(draw, style)) {
+
+			drawMember(gdi_, draw);
 		}
 
 
@@ -1122,26 +1165,63 @@ void sdf::ScrollView::onDraw() {
 	if (!parent_)
 		return;
 
-	COUT(tt_("scroll onDraw"));
+
+	if (msgDraw && !parent_->isTop) {
+		//作为子成员无需单独绘制
+		return;
+	}
+
 	updateDrawXY();
+
+	COUT(tt_("scroll onDraw"));
+
+	DrawBuffer* draw = getDraw();
+
 	bool drawSub = true;
 
-	//df::TickClock([&] {
 	if (isPress) {
-		drawSub = drawStyle(this, stylePress, text, true);
+		drawSub = drawStyle(draw, stylePress, true);
+		return;
 	}
-	else if (isDisable) {
-		drawSub = drawStyle(this, styleDisable, text, true);
+	if (isDisable) {
+		drawSub = drawStyle(draw, styleDisable, true);
 	}
 	else if (isHover) {
-		drawSub = drawStyle(this, styleHover, text, true);
+		drawSub = drawStyle(draw, styleHover, true);
 	}
 	else {
-		drawSub = drawStyle(this, style, text, true);
+		drawSub = drawStyle(draw, style, true);
 	}
-	//}, 10);
-	if (drawSub)
-		drawMember(gdi_);
+
+	if (drawSub) {
+		needDraw = false;
+		//df::TickClock([&] {
+		for (auto& sub : memberList_) {
+
+			if (sub->showOverflow())
+				continue;
+
+
+			sub->onDraw();
+		}
+		//	}, 1);
+
+		needDraw = true;
+		if (draw) {
+			DrawBuffer* drawParent = parent_->getDraw();
+			if (drawParent)
+				drawParent->buttonBmp_.DrawFrom(draw->buttonBmp_, drawX_, drawY_, pos.w, pos.h, drawX_, drawY_);
+			if (parent_->needDraw) {
+				gdi_.DrawFrom(draw->buttonBmp_, 0, 0, pos.w, pos.h, drawX_, drawY_);
+			}
+		}
+
+	}
+
+
+
+
+
 }
 
 void sdf::ScrollView::Init() {
@@ -1209,7 +1289,7 @@ bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPa
 		si.fMask = SIF_ALL;
 		GetScrollInfo(hDlg, SB_HORZ, &si);
 		//当前滑块的位置
-		COUT("WM_HSCROLL:" << si.nPos);
+		//COUT("WM_HSCROLL:" << si.nPos);
 		switch (wParam & 0xffff) {
 		case SB_TOP:
 			si.nPos = si.nMin;
@@ -1256,7 +1336,7 @@ bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPa
 		si.fMask = SIF_ALL;
 		GetScrollInfo(hDlg, SB_VERT, &si);
 		//当前滑块的位置
-		COUT("WM_VSCROLL:" << si.nPos);
+		//COUT("WM_VSCROLL:" << si.nPos);
 		switch (wParam & 0xffff) {
 		case SB_TOP:
 			si.nPos = si.nMin;
@@ -1299,7 +1379,7 @@ bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPa
 				   break;
 	}
 
-	return false;
+	return true;
 }
 
 void sdf::View::Init() {
@@ -1345,8 +1425,6 @@ void sdf::ImageView::onDraw() {
 	if (!parent_)
 		return;
 
-	updateDrawXY();
-
 	if (isPress) {
 	}
 	else if (isDisable) {
@@ -1354,22 +1432,26 @@ void sdf::ImageView::onDraw() {
 	else if (isHover) {
 	}
 	else {
-		if (parent_->needDraw && !parent_->isTop && imageList_.size() < 2) {
+		if (msgDraw && !parent_->isTop) {
 			//作为子成员无需单独绘制
 			return;
 		}
+		updateDrawXY();
 
-		if (Control::drawStyle(this, style, text, true)) {
+		DrawBuffer* draw = getDraw();
+
+		if (Control::drawStyle(draw, style, true) && draw) {
 
 			int w = GetWidth();
 			int h = GetHeight();
 
-			Gdiplus::Rect dest(drawX, drawY, w, h);
+			Gdiplus::Rect dest(drawX_, drawY_, w, h);
 			if (showI >= 0 && showI < imageList_.size()) {
-				graph_->DrawImage(imageList_[showI]->getImg(), dest);
+				draw->graph_->DrawImage(imageList_[showI]->getImg(), dest);
 			}
+			//COUT(tt_("image ondraw"));
 
-			drawMember(gdi_);
+			drawMember(gdi_, draw);
 		}
 
 
@@ -1429,7 +1511,7 @@ bool sdf::ImageView::ControlProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM 
 		break;
 	}
 	}
-	return false;
+	return true;
 }
 
 ////////////////////////////////Button//////////////////////////////////////////
@@ -1498,52 +1580,60 @@ bool sdf::Button::ControlProc(HWND, UINT msg, WPARAM, LPARAM lParam) {
 	return true;
 }
 
+void sdf::DrawBuffer::newBmp(int32_t w, int32_t h) {
+	auto oldBmp = std::move(buttonBmp_);
+	buttonBmpBuf_ = buttonBmp_.CreateDib(max(w, oldBmp.GetWidth()), max(h, oldBmp.GetHeight()));
+	buttonBmp_.SetTextBackColor();
+	buttonBmp_.setFont(Control::GlobalFont());
 
-bool sdf::Control::drawStyle(Control* cont, ControlStyle& style, const String& text, bool parentBack) {
+	if (oldBmp.GetDc())
+		oldBmp.DrawTo(buttonBmp_);
+
+	Gdip::Init();
+
+	if (graph_)
+		delete graph_;
+	graph_ = Gdiplus::Graphics::FromHDC(buttonBmp_.GetDc());
+	graph_->SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+	//双线性插值
+	graph_->SetInterpolationMode(Gdiplus::InterpolationModeBilinear);
+}
 
 
-	cont->lastDrawStyle = &style;
-	int32_t drawX = cont->getDrawX();
-	int32_t drawY = cont->getDrawY();
+bool sdf::Control::drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentBack) {
+	if (!draw)
+		return false;
 
+
+	lastDrawStyle = &style;
+	int32_t drawX = getDrawX();
+	int32_t drawY = getDrawY();
 
 	RECT rect;
 	rect.left = drawX;
 	rect.top = drawY;
-	rect.right = drawX + cont->GetWidth();
-	rect.bottom = drawY + cont->GetHeight();
+	rect.right = drawX + GetWidth();
+	rect.bottom = drawY + GetHeight();
 
-	int w = cont->GetWidth();
-	int h = cont->GetHeight();
+	int32_t w = GetWidth();
+	int32_t h = GetHeight();
 
-	if (drawX + w < cont->parent_->drawX || drawX > cont->parent_->drawX + cont->parent_->GetWidth() ||
-		drawY + h < cont->parent_->drawY || drawY > cont->parent_->drawY + cont->parent_->GetHeight()
+	if (drawX + w < parent_->drawX_ || drawX > parent_->drawX_ + parent_->GetWidth() ||
+		drawY + h < parent_->drawY_ || drawY > parent_->drawY_ + parent_->GetHeight()
 
 		) {
-
+		//COUT(tt_("skip draw :") << cont->text);
 		return false;
 	}
 
-	if (buttonBmp_.GetWidth() < drawX + w || buttonBmp_.GetHeight() < drawY + h) {
-		auto oldBmp = std::move(buttonBmp_);
-		buttonBmpBuf_ = buttonBmp_.CreateDib(max(drawX + w, oldBmp.GetWidth()), max(drawY + h, oldBmp.GetHeight()));
-		buttonBmp_.SetTextBackColor();
-		oldBmp.DrawTo(buttonBmp_);
-		Gdip::Init();
-		if (graph_)
-			delete graph_;
-		graph_ = Gdiplus::Graphics::FromHDC(buttonBmp_.GetDc());
-		graph_->SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
-		//双线性插值
-		graph_->SetInterpolationMode(Gdiplus::InterpolationModeBilinear);
-
+	if (!draw->buttonBmpBuf_ || draw->buttonBmp_.GetWidth() < drawX + w || draw->buttonBmp_.GetHeight() < drawY + h) {
+		draw->newBmp(drawX + w, drawY + h);
 	}
-	int32_t* buf = (int32_t*)buttonBmpBuf_;
+	int32_t* buf = (int32_t*)draw->buttonBmpBuf_;
 	if (buf == nullptr)
 		return false;
 
-	int bufW = buttonBmp_.GetWidth();
-
+	int bufW = draw->buttonBmp_.GetWidth();
 
 
 	//画阴影
@@ -1576,7 +1666,7 @@ bool sdf::Control::drawStyle(Control* cont, ControlStyle& style, const String& t
 		rect.left += 2;
 	}
 
-	if (cont->isFocused) {
+	if (isFocused) {
 		//but.buttonGdi_.SetPen(WhiteDotPen_);
 		//but.buttonGdi_.SetBrush(Brush::GetNullBrush());
 		//but.buttonGdi_.Rect(but.buttonRect_.left + 3, but.buttonRect_.top + 3, but.buttonRect_.right - 3, but.buttonRect_.bottom - 3);
@@ -1594,7 +1684,7 @@ bool sdf::Control::drawStyle(Control* cont, ControlStyle& style, const String& t
 	}
 	else if (!style.backImage && parentBack) {
 		uint32_t color = 0;
-		Control* par = cont->parent_;
+		Control* par = parent_;
 		while (par != nullptr && color == 0) {
 			if (par->lastDrawStyle)
 				color = par->lastDrawStyle->backColor;
@@ -1658,7 +1748,9 @@ bool sdf::Control::drawStyle(Control* cont, ControlStyle& style, const String& t
 				sY = drawY + (h - nH) / 2;
 			}
 			Gdiplus::Rect dest(sX, sY, nW, nH);
-			graph_->DrawImage(style.backImage->getImg(), dest);
+
+
+			draw->graph_->DrawImage(style.backImage->getImg(), dest);
 
 		}
 		else if (style.scaleType == BitmapScaleType::centerClip) {
@@ -1674,25 +1766,76 @@ bool sdf::Control::drawStyle(Control* cont, ControlStyle& style, const String& t
 			//graph_->ScaleTransform(nW/ style.backImage->GetWidth(), nH/ style.backImage->GetHeight());
 
 			Gdiplus::Rect dest(drawX, drawY, w, h);
-			graph_->DrawImage(style.backImage->getImg(), dest, sX / 2, sY / 2, style.backImage->GetWidth() - sX,
+			draw->graph_->DrawImage(style.backImage->getImg(), dest, sX / 2, sY / 2, style.backImage->GetWidth() - sX,
 				style.backImage->GetHeight() - sY, Gdiplus::UnitPixel);
 		}
 		else {
 			Gdiplus::Rect dest(sX, sY, nW, nH);
-			graph_->DrawImage(style.backImage->getImg(), dest);
+			draw->graph_->DrawImage(style.backImage->getImg(), dest);
 		}
 
 
 	}
 
 	if (text.length() > 0) {
-		buttonBmp_.setFont(Control::GlobalFont());
-		buttonBmp_.SetTextColor(style.color);
-		cont->onDrawText(rect);
+		draw->buttonBmp_.SetTextColor(style.color);
+		onDrawText(rect, draw);
 	}
 
 	return true;
 }
+
+void sdf::Control::removeAllMember() {
+	for (auto& c : memberList_) {
+		c->_removeFromParent(false);
+	}
+	memberList_.clear();
+}
+
+void sdf::Control::removeFromParent() {
+	_removeFromParent(true);
+
+}
+
+void sdf::Control::_removeFromParent(bool remove) {
+	auto par = parent_;
+	if (par) {
+		if (handle_) {
+			::SetParent(handle_, 0);
+			setHW(0, 0);
+		}
+		//hide();
+		parent_ = 0;
+		if (remove) {
+			for (auto it = par->memberList_.begin(); it != par->memberList_.end(); it++) {
+				if (this == it->get()) {
+					par->memberList_.erase(it);
+					break;
+				}
+			}
+		}
+
+	}
+}
+
+void sdf::Control::addMember(const std::shared_ptr<Control>& con) {
+	DF_ASSERT(con->parent_ == nullptr);
+	con->parent_ = this;
+	memberList_.push_back(con);
+
+	if (handle_) {
+		if (!con->handle_) {
+			con->doCreate();
+
+			con->Init();
+		}
+		else {
+			::SetParent(con->handle_, handle_);
+		}
+
+	}
+}
+
 
 void sdf::Button::onDraw() {
 	if (oldStyle) {
@@ -1703,36 +1846,41 @@ void sdf::Button::onDraw() {
 
 	updateDrawXY();
 
-
-
 	//if (parent_->needDraw && !parent_->isTop) {
 	//	//作为子成员无需单独绘制
 	//	return;
 	//}
 
+	DrawBuffer* draw = getDraw();
 	bool drawSub = true;
 
 	//df::TickClock([&] {
 	if (isPress) {
-		drawSub = drawStyle(this, stylePress, text, true);
+		drawSub = drawStyle(draw, stylePress, true);
 	}
 	else if (isDisable) {
-		drawSub = drawStyle(this, styleDisable, text, true);
+		drawSub = drawStyle(draw, styleDisable, true);
 	}
 	else if (isHover) {
-		drawSub = drawStyle(this, styleHover, text, true);
+		drawSub = drawStyle(draw, styleHover, true);
 	}
 	else if (isCheck) {
-		drawSub = drawStyle(this, styleCheck, text, true);
+		drawSub = drawStyle(draw, styleCheck, true);
 	}
 	else {
-		drawSub = drawStyle(this, style, text, true);
+		drawSub = drawStyle(draw, style, true);
 	}
 	//}, 10);
 
-	if (drawSub)
-		drawMember(buttonGdi_);
 
+	if (drawSub) {
+
+		drawMember(buttonGdi_, draw);
+	}
+
+	//if (drawSub) {
+	//	COUT(tt_("draw button"));
+	//}
 
 }
 
@@ -1746,7 +1894,7 @@ void sdf::TextBox::Init() {
 		ES_LEFT | WS_BORDER;
 
 	if (mutiLine) {
-		sty |= ES_MULTILINE | WS_BORDER | WS_VSCROLL | ES_AUTOVSCROLL;
+		sty |= ES_MULTILINE | WS_VSCROLL | ES_AUTOVSCROLL;
 	}
 	else {
 		sty |= ES_AUTOHSCROLL;
@@ -1797,7 +1945,13 @@ void sdf::TextBox::Init() {
 
 
 bool sdf::TextBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM) {
-	if (msg == WM_COMMAND) {
+
+	if (msg == WM_PAINT) {
+
+		updateDrawXY();
+		//return false;
+	}
+	else if (msg == WM_COMMAND) {
 		switch (HIWORD(wParam)) {
 		case EN_CHANGE:
 			if (onChange_)
@@ -1867,7 +2021,11 @@ void sdf::ListBox::Init() {
 }
 
 bool sdf::ListBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM) {
-	if (msg == WM_COMMAND) {
+	if (msg == WM_PAINT) {
+		updateDrawXY();
+		//return false;
+	}
+	else if (msg == WM_COMMAND) {
 		switch (HIWORD(wParam)) {
 		case LBN_SELCHANGE:
 			if (onClick_)
@@ -1946,6 +2104,11 @@ void sdf::ComBox::Init() {
 }
 
 bool sdf::ComBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM) {
+	if (msg == WM_PAINT) {
+		updateDrawXY();
+		//return false;
+	}
+
 	if (msg == WM_COMMAND) {
 		switch (HIWORD(wParam)) {
 		case CBN_SELCHANGE:
@@ -1967,14 +2130,19 @@ bool sdf::ComBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM) {
 
 
 
-void sdf::CheckBox::onDrawText(RECT& rect) {
+void sdf::CheckBox::onDrawText(RECT& rect, DrawBuffer* draw) {
+
+	if (!draw)
+		return;
+
+	//COUT(tt_("draw checkbox"));
 	int32_t drawX = getDrawX() + pos.paddingLeft;
 	int32_t drawY = getDrawY() + pos.paddingTop;
 
 	int32_t size = (int32_t)(1 * Window::getScale());
 	int32_t w = pos.h - pos.paddingTop - pos.paddingBottom;
-	int bufW = buttonBmp_.GetWidth();
-	uint32_t* buf = (uint32_t*)buttonBmpBuf_;
+	int bufW = draw->buttonBmp_.GetWidth();
+	uint32_t* buf = (uint32_t*)draw->buttonBmpBuf_;
 
 	uint32_t borderColor = style.borderColor;
 	if (isCheck || isHover || isPress || isFocused) {
@@ -1986,7 +2154,7 @@ void sdf::CheckBox::onDrawText(RECT& rect) {
 			Gdiplus::Pen bluePen(Gdiplus::Color(styleDisable.borderColor), (float)size * 2);
 			// Create a Rect object that bounds the ellipse.
 			Gdiplus::RectF ellipseRect((float)drawX, (float)drawY, (float)w, (float)w);
-			graph_->DrawEllipse(&bluePen, ellipseRect);
+			draw->graph_->DrawEllipse(&bluePen, ellipseRect);
 		}
 		else {
 			//横
@@ -2015,12 +2183,12 @@ void sdf::CheckBox::onDrawText(RECT& rect) {
 			Gdiplus::Pen bluePen(Gdiplus::Color(borderColor), (float)size * 2);
 			// Create a Rect object that bounds the ellipse.
 			Gdiplus::RectF ellipseRect((float)drawX, (float)drawY, (float)w, (float)w);
-			graph_->DrawEllipse(&bluePen, ellipseRect);
+			draw->graph_->DrawEllipse(&bluePen, ellipseRect);
 
 			float dotSize = (float)w / 2;
 			Gdiplus::SolidBrush brush(Gdiplus::Color((Gdiplus::ARGB)borderColor));
 			Gdiplus::RectF ellipseRect2(drawX + (w - dotSize) / 2, drawY + (w - dotSize) / 2, dotSize, dotSize);
-			graph_->FillEllipse(&brush, ellipseRect2);
+			draw->graph_->FillEllipse(&brush, ellipseRect2);
 		}
 		else {
 
@@ -2043,8 +2211,8 @@ void sdf::CheckBox::onDrawText(RECT& rect) {
 			}
 
 			Gdiplus::Pen pen(Gdiplus::Color(Color::white), 2 * Window::getScale());
-			graph_->DrawLine(&pen, drawX + w * 0.20f, drawY + w * 0.42f, drawX + w * 0.40f, drawY + w * 0.67f);
-			graph_->DrawLine(&pen, drawX + w * 0.38f, drawY + w * 0.66f, drawX + w * 0.8f, drawY + w * 0.28f);
+			draw->graph_->DrawLine(&pen, drawX + w * 0.20f, drawY + w * 0.42f, drawX + w * 0.40f, drawY + w * 0.67f);
+			draw->graph_->DrawLine(&pen, drawX + w * 0.38f, drawY + w * 0.66f, drawX + w * 0.8f, drawY + w * 0.28f);
 		}
 	}
 	else {
@@ -2053,7 +2221,7 @@ void sdf::CheckBox::onDrawText(RECT& rect) {
 			Gdiplus::Pen bluePen(Gdiplus::Color(borderColor), (float)size * 2);
 			// Create a Rect object that bounds the ellipse.
 			Gdiplus::RectF ellipseRect((float)drawX, (float)drawY, (float)w, (float)w);
-			graph_->DrawEllipse(&bluePen, ellipseRect);
+			draw->graph_->DrawEllipse(&bluePen, ellipseRect);
 			//buttonBmp_.Round(drawX, drawY, drawX + w, drawY + w);
 		}
 		else {
@@ -2081,7 +2249,7 @@ void sdf::CheckBox::onDrawText(RECT& rect) {
 	}
 	rect.left = drawX + w;
 	rect.top = getDrawY();
-	buttonBmp_.Txt(rect, text);
+	draw->buttonBmp_.Txt(rect, text);
 }
 
 bool sdf::CheckBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM) {
@@ -2129,7 +2297,6 @@ bool sdf::Bitmap::Load(const df::CC& name) {
 
 	releaseImg();
 	imgp_ = new Gdiplus::Image(wName);
-
 
 	if (imgp_ == nullptr || imgp_->GetLastStatus() != Gdiplus::Ok) {
 		width_ = 1;

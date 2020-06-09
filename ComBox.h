@@ -87,6 +87,7 @@ namespace sdf
 		}
 		virtual void onDraw() {
 			//COUT(tt_("重绘ComBox"));
+			updateDrawXY();
 			//update();
 		}
 	protected:

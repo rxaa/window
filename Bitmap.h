@@ -69,9 +69,11 @@ namespace sdf
 			imgBuf_ = bmp.imgBuf_;
 			hasAlpha = bmp.hasAlpha;
 			hdc_ = bmp.hdc_;
+			imgp_ = bmp.imgp_;
 			bmp.hdc_ = 0;
 			bmp.imgBuf_ = 0;
 			bmp.img_ = 0;
+			bmp.imgp_ = 0;
 		}
 
 		~Bitmap()

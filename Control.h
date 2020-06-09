@@ -1,186 +1,32 @@
 ﻿#ifndef Control_h__2013_8_1__9_24
 #define Control_h__2013_8_1__9_24
 
-#include "../df/df.h"
-#include <commctrl.h>
-
-#ifdef _MSC_VER
-#pragma comment(lib, "comctl32")
-#pragma comment(lib, "Msimg32")
-#pragma comment(lib, "gdiplus")
-
-// Embed visual style XML manifest
-#pragma comment(linker,                           \
-    "\"/manifestdependency:type='Win32'"          \
-    "   name='Microsoft.Windows.Common-Controls'" \
-    "   version='6.0.0.0'"                        \
-    "   processorArchitecture='*'"                \
-    "   publicKeyToken='6595b64144ccf1df'"        \
-    "   language='*'\""                           \
-)
-
-// Link common controls library
-#pragma comment(lib, "ComCtl32.lib")
-
-#endif // _MSC_VER
-
-#include "Font.h"
-
-#include "Gdi.h"
-#include "gdiP.h"
-#include "Bitmap.h"
+#include "ControlData.h"
 
 namespace sdf {
 
 
-
-
-	class ControlStyle {
-	public:
-		uint32_t color = 0;
-		uint32_t backColor = 0;
-		int shadowSize = 0;
-
-		uint16_t borderLeft = 0;
-		uint16_t borderTop = 0;
-		uint16_t borderRight = 0;
-		uint16_t borderBottom = 0;
-		uint32_t borderColor = 0;
-		std::shared_ptr<Bitmap> backImage;
-		BitmapScaleType scaleType;
-
-		void border(uint16_t size) {
-			borderLeft = size;
-			borderTop = size;
-			borderRight = size;
-			borderBottom = size;
-		}
-	};
-
-	class ControlPos {
-	public:
-		int32_t x = 0;
-		int32_t y = 0;
-
-
-		//内容宽度,不包括右侧滚动条宽
-		int32_t w = -1;
-		int32_t h = -1;
-
-		int32_t paddingLeft = 0;
-		int32_t paddingTop = 0;
-		int32_t paddingRight = 0;
-		int32_t paddingBottom = 0;
-
-		int32_t marginLeft = 0;
-		int32_t marginTop = 0;
-		int32_t marginRight = 0;
-		int32_t marginBottom = 0;
-
-		int16_t flexX = 0;
-		int16_t flexY = 0;
-
-		bool wrapX = false;
-		bool wrapY = false;
-
-		//是否垂直显示
-		bool vector = false;
-
-		//使用绝对坐标
-		bool absolute = false;
-
-		//是否已进行过dpi scale转换
-		bool scaleMeasured = false;
-
-		void flex(int32_t flex) {
-			flexX = flex;
-			flexY = flex;
-		}
-
-		void paddingX(int32_t val) {
-			paddingLeft = val;
-			paddingRight = val;
-		}
-
-		void paddingY(int32_t val) {
-			paddingTop = val;
-			paddingBottom = val;
-		}
-
-		void padding(int32_t val) {
-			paddingLeft = val;
-			paddingRight = val;
-			paddingTop = val;
-			paddingBottom = val;
-		}
-
-
-		void marginX(int32_t val) {
-			marginLeft = val;
-			marginRight = val;
-		}
-
-		void marginY(int32_t val) {
-			marginTop = val;
-			marginBottom = val;
-		}
-
-		void margin(int32_t val) {
-			marginLeft = val;
-			marginRight = val;
-			marginTop = val;
-			marginBottom = val;
-		}
-
-
-		//指定所有子成员居中
-		void center(bool val = true) {
-			_centerX = val;
-			_centerY = val;
-		}
-
-		void centerX(bool val = true) {
-			_centerX = val;
-		}
-
-		void centerY(bool val = true) {
-			_centerY = val;
-		}
-
-		//在父容器中居中
-		void centerInParent(bool val = true) {
-			_centerInParentX = val;
-			_centerInParentY = val;
-		}
-
-		void centerInParentX(bool val = true) {
-			_centerInParentX = val;
-		}
-
-		void centerInParentY(bool val = true) {
-			_centerInParentY = val;
-		}
-
-		bool _centerX = false;
-		bool _centerY = false;
-		bool _centerInParentX = false;
-		bool _centerInParentY = false;
-	};
-
-	class Control :public std::enable_shared_from_this<Control> {
+	class Control : public std::enable_shared_from_this<Control> {
 		DF_DISABLE_COPY_ASSIGN(Control);
 	protected:
 		HWND handle_ = 0;
 
 		Control* parent_ = nullptr;
 
-		
-
 		friend class Tray;
+
 		friend class View;
+
 		friend class Button;
+
 		friend struct WinHandle;
+
 		friend class ImageView;
+
+		friend class ScrollView;
+
+		friend class Window;
+
 		//最近一次创建的窗口,用于OnInit
 		static HWND currentHandle_;
 		static Window* parentWindow_;
@@ -191,25 +37,31 @@ namespace sdf {
 			::SetWindowLongPtr(handle_, GWLP_USERDATA, (LONG_PTR)this);
 		}
 
+
 		//按钮焦点对象
 		static Control* mouseHandle_;
-		//全局绘图缓冲
-		static Bitmap buttonBmp_;
-		static char* buttonBmpBuf_;
-		static Gdiplus::Graphics* graph_;
+
+		/// <summary>
+		/// 绘图缓冲,每个window和scrollView有单独的缓冲
+		/// 其他所有子控件使用父容器的绘图缓冲
+		/// </summary>
+		DrawBuffer* drawBuff_ = nullptr;
+
 		//相对于父容器的坐标
 		int32_t showX_ = 0;
 		int32_t showY_ = 0;
 
 		//相对于背景画布的坐标
-		int32_t drawX = 0;
-		int32_t drawY = 0;
+		int32_t drawX_ = 0;
+		int32_t drawY_ = 0;
 
 		//最后一次绘制的样式
 		ControlStyle* lastDrawStyle = 0;
 
 		//是否需要绘制到屏幕
 		bool needDraw = true;
+		//来自消息循环的重绘事件
+		bool msgDraw = false;
 		//是否顶层节点
 		bool isTop = false;
 	public:
@@ -249,8 +101,24 @@ namespace sdf {
 		}
 
 
+
+
 		virtual ~Control() {
 			ReleaseUserData();
+		}
+
+		//回取顶层绘图缓冲
+		DrawBuffer* getDraw() {
+			DrawBuffer* draw = drawBuff_;
+			auto par = parent_;
+			while (draw == nullptr) {
+				if (par == nullptr) {
+					return nullptr;
+				}
+				draw = par->drawBuff_;
+				par = par->parent_;
+			}
+			return draw;
 		}
 
 		template<typename Derived>
@@ -267,7 +135,7 @@ namespace sdf {
 		/// <param name="text"></param>
 		/// <param name="parentBack">当背景为空时使用父级背景</param>
 		/// <returns></returns>
-		static bool drawStyle(Control* cont, ControlStyle& style, const String& text, bool parentBack = false);
+		bool drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentBack = false);
 
 		void setBackColor(int32_t color) {
 			style.backColor = color;
@@ -296,16 +164,31 @@ namespace sdf {
 		}
 
 		int32_t getDrawX() {
-			return parent_->drawX - parent_->getHoriPos() + pos.x;
+			return parent_->drawX_ - parent_->getHoriPos() + pos.x;
 		}
 
+		//是否完全溢出父容器
+		bool showOverflow() {
+
+
+			int32_t dX = getDrawX();
+			int32_t dY = getDrawY();
+			int32_t w = GetWidth();
+			int32_t h = GetHeight();
+			if (dX + w < parent_->drawX_ || dX >  parent_->drawX_ + parent_->GetWidth() ||
+				dY + h <  parent_->drawY_ || dY > parent_->drawY_ + parent_->GetHeight()
+				) {
+				return true;
+			}
+			return false;
+		}
 		int32_t getDrawY() {
-			return parent_->drawY - parent_->getVertPos() + pos.y;
+			return parent_->drawY_ - parent_->getVertPos() + pos.y;
 		}
 
 		static Font& GlobalFont();
 
-		static void init(HINSTANCE inst) {
+		static void initInst(HINSTANCE inst) {
 			::SetProcessDPIAware();
 			progInstance_ = inst;
 		}
@@ -316,6 +199,9 @@ namespace sdf {
 		inline void ReleaseUserData() {
 			if (handle_) {
 				::SetWindowLongPtr(handle_, GWLP_USERDATA, 0);
+				if (parent_ == 0 && !isTop) {
+					::DestroyWindow(handle_);
+				}
 				handle_ = 0;
 			}
 
@@ -330,7 +216,6 @@ namespace sdf {
 		}
 
 
-
 		virtual void onHover() {
 
 		};
@@ -340,14 +225,14 @@ namespace sdf {
 		}
 
 		virtual void onDraw() {
-
+			updateDrawXY();
 		}
 
 
 
-
-		virtual void onDrawText(RECT& rect) {
-			buttonBmp_.Txt(rect, text);
+		virtual void onDrawText(RECT& rect, DrawBuffer* draw) {
+			if (draw)
+				draw->buttonBmp_.Txt(rect, text);
 		}
 
 		virtual void getContentWH(int32_t& w, int32_t& h) {
@@ -356,6 +241,7 @@ namespace sdf {
 		}
 
 		virtual void onMeasure();
+
 
 		//*******************************************
 		// Summary : 获取在父窗口中的位置与大小
@@ -400,8 +286,10 @@ namespace sdf {
 			DF_ASSERT(handle_ != NULL);
 			showX_ = x;
 			showY_ = y;
+			//SetWindowPos很慢
 			if (handle_)
-				return ::SetWindowPos(handle_, 0, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOREDRAW);
+				return ::SetWindowPos(handle_, 0, x, y, 0, 0,
+					SWP_NOSIZE | SWP_NOZORDER | SWP_DEFERERASE | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOREDRAW);
 			return false;
 		}
 
@@ -415,9 +303,11 @@ namespace sdf {
 			return false;
 		}
 
-		inline BOOL setHW(int32_t w, int32_t h) {
-			showW_ = w;
-			showH_ = h;
+		inline BOOL setHW(int32_t w, int32_t h, bool save = true) {
+			if (save) {
+				showW_ = w;
+				showH_ = h;
+			}
 			return ::SetWindowPos(handle_, 0, 0, 0, w, h, SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER | SWP_NOCOPYBITS);
 		}
 
@@ -537,7 +427,7 @@ namespace sdf {
 
 		void measureUpdate() {
 			Control::adjustRecur(this);
-			update();
+			onDraw();
 		}
 
 		void update() {
@@ -551,11 +441,17 @@ namespace sdf {
 			//::UpdateWindow(handle_);
 		}
 
-		void addSub(const std::shared_ptr<Control>& control) {
+
+		void _addSub(const std::shared_ptr<Control>& control) {
 			control->parent_ = this;
 			memberList_.push_back(control);
 		}
 
+		void addMember(const std::shared_ptr<Control>& con);
+
+		void removeAllMember();
+
+		void removeFromParent();
 
 		//*******************************************
 		// Summary : 返回false取消此消息
@@ -571,13 +467,15 @@ namespace sdf {
 
 	protected:
 
-
+		void _removeFromParent(bool remove);
 		WNDPROC prevMsgProc_ = 0;
 		int32_t measureX_ = 0;
 		int32_t measureY_ = 0;
 
 		void measureWrapX(int32_t minW);
+
 		void measureWrapY(int32_t minH);
+
 		static void adjustRecur(sdf::Control* cont) {
 			cont->measureX_ = 0;
 			cont->measureY_ = 0;
@@ -587,16 +485,20 @@ namespace sdf {
 			}
 		}
 
+		//更新在父容器中的位置
 		void updateDrawXY() {
 			int32_t hp = parent_->getHoriPos();
 			int32_t vp = parent_->getVertPos();
-			drawX = parent_->drawX - hp + pos.x;
-			drawY = parent_->drawY - vp + pos.y;
-			if (pos.x - hp != showX_ || pos.y - vp != showY_)
+			drawX_ = parent_->drawX_ - hp + pos.x;
+			drawY_ = parent_->drawY_ - vp + pos.y;
+
+			if (pos.x - hp != showX_ || pos.y - vp != showY_) {
 				setPos(pos.x - hp, pos.y - vp);
+			}
+
 		}
 
-		void drawMember(Gdi& gdi);
+		void drawMember(Gdi& gdi, DrawBuffer* draw);
 
 		static LRESULT  __stdcall ButtonProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -652,12 +554,12 @@ namespace sdf {
 
 	};
 
-	typedef  std::shared_ptr<sdf::Control> PtrControl;
+	typedef std::shared_ptr<sdf::Control> PtrControl;
 }
 
 
-#define ui_control(Name_) std::shared_ptr<Name_> DF_MIX_LINENAME(UIBUTTON, __LINE__)=std::make_shared<Name_>();v.addSub(DF_MIX_LINENAME(UIBUTTON, __LINE__));DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&,&v=*DF_MIX_LINENAME(UIBUTTON, __LINE__)]()
-#define ui_control2(Name_,Paras_) std::shared_ptr<Name_> DF_MIX_LINENAME(UIBUTTON, __LINE__)=std::make_shared<Name_>(Paras_);v.addSub(DF_MIX_LINENAME(UIBUTTON, __LINE__));DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&,&v=*DF_MIX_LINENAME(UIBUTTON, __LINE__)]()
+#define ui_control(Name_) std::shared_ptr<Name_> DF_MIX_LINENAME(UIBUTTON, __LINE__)=std::make_shared<Name_>();v._addSub(DF_MIX_LINENAME(UIBUTTON, __LINE__));DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&,&v=*DF_MIX_LINENAME(UIBUTTON, __LINE__)]()
+#define ui_control2(Name_, Paras_) std::shared_ptr<Name_> DF_MIX_LINENAME(UIBUTTON, __LINE__)=std::make_shared<Name_>(Paras_);v._addSub(DF_MIX_LINENAME(UIBUTTON, __LINE__));DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&,&v=*DF_MIX_LINENAME(UIBUTTON, __LINE__)]()
 
 
 #include "View.h"

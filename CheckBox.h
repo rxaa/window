@@ -26,7 +26,7 @@ namespace sdf
 			w = Gdi::GetScreen().GetTextPixel(text) + h + 3;
 		}
 
-		virtual void onDrawText(RECT& rect);
+		virtual void onDrawText(RECT& rect, DrawBuffer* draw) override;
 
 	protected:
 

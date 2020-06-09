@@ -28,9 +28,13 @@ namespace sdf {
 		Window(void) : v(*this) {
 			v.style.backColor = Color::white;
 			isTop = true;
+			drawBuff_ = new DrawBuffer();
 		}
 
-		virtual ~Window(void) {}
+		virtual ~Window(void) {
+			COUT(tt_("window gone"));
+			delete drawBuff_;
+		}
 
 		int32_t minHeight = 0;
 		int32_t minWeight = 0;
