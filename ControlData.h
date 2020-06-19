@@ -56,7 +56,7 @@ namespace sdf {
 		uint16_t borderBottom = 0;
 		uint32_t borderColor = 0;
 		std::shared_ptr<Bitmap> backImage;
-		BitmapScaleType scaleType;
+		BitmapScaleType scaleType= BitmapScaleType::center;
 
 		void border(uint16_t size) {
 			borderLeft = size;

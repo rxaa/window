@@ -329,7 +329,7 @@ void sdf::Control::drawMember(Gdi& gdi, DrawBuffer* draw) {
 		}*/
 		sub->onDraw();
 	}
-	if (parent_->needDraw && draw) {
+	if (parent_ && parent_->needDraw && draw) {
 		gdi.DrawFrom(draw->buttonBmp_, 0, 0, pos.w, pos.h, drawX_, drawY_);
 	}
 
@@ -353,7 +353,14 @@ LRESULT  __stdcall sdf::Control::ButtonProc(HWND hDlg, UINT message, WPARAM wPar
 	case WM_LBUTTONDBLCLK:
 		PostMessage(hDlg, WM_LBUTTONDOWN, wParam, lParam);
 		break;
+
+	case WM_ERASEBKGND: {
+		//COUT(tt_("button WM_ERASEBKGND"));
+		//取消系统背景
+		return 1;
 	}
+	}
+
 	Control* cont = GetUserData(hDlg);
 	if (cont) {
 
@@ -647,7 +654,7 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 
 	WNDCLASS wndclass = { 0 };
 	wndclass.style = CS_VREDRAW | CS_HREDRAW;
-	wndclass.lpfnWndProc = WndProc;
+	wndclass.lpfnWndProc = (WNDPROC)WndProc;
 	wndclass.cbClsExtra = 0;
 	wndclass.cbWndExtra = 0;
 	wndclass.hInstance = Control::progInstance_;
@@ -848,7 +855,7 @@ void sdf::Window::AdjustLayout() {
 	//COUT(tcc_("AdjustLayout") << memberList_.size());
 	onLayout();
 	Control::adjustRecur(this);
-	update();
+	//drawMember(gdi_, getDraw());
 }
 
 struct PopMsgStruct {
@@ -1194,6 +1201,9 @@ void sdf::ScrollView::onDraw() {
 	}
 
 	if (drawSub) {
+
+		
+
 		needDraw = false;
 		//df::TickClock([&] {
 		for (auto& sub : memberList_) {
@@ -1206,6 +1216,8 @@ void sdf::ScrollView::onDraw() {
 		}
 		//	}, 1);
 
+
+
 		needDraw = true;
 		if (draw) {
 			DrawBuffer* drawParent = parent_->getDraw();
@@ -1216,9 +1228,8 @@ void sdf::ScrollView::onDraw() {
 			}
 		}
 
+
 	}
-
-
 
 
 
@@ -1229,7 +1240,7 @@ void sdf::ScrollView::Init() {
 	handle_ = CreateWindow(
 		tt_("BUTTON"),  // Predefined class; Unicode assumed
 		text.c_str(),      // Button text
-		WS_VISIBLE | WS_CHILD | BS_OWNERDRAW,  // Styles  |BS_OWNERDRAW
+		WS_VISIBLE | WS_CHILD | BS_OWNERDRAW | WS_CLIPCHILDREN,  // Styles  |BS_OWNERDRAW
 		pos.x,         // x position
 		pos.y,         // y position
 		showW_,        // Button width
@@ -1325,7 +1336,7 @@ bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPa
 
 		si.fMask = SIF_POS;
 		horiPos = si.nPos;
-		SetScrollInfo(hDlg, SB_HORZ, &si, false);
+		SetScrollInfo(hDlg, SB_HORZ, &si, true);
 		onDraw();
 		break;
 	}
@@ -1372,7 +1383,7 @@ bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPa
 
 		si.fMask = SIF_POS;
 		vertPos = si.nPos;
-		SetScrollInfo(hDlg, SB_VERT, &si, false);
+		SetScrollInfo(hDlg, SB_VERT, &si, true);
 		onDraw();
 		//InvalidateRect(hDlg, NULL, TRUE);
 	}
@@ -1446,7 +1457,7 @@ void sdf::ImageView::onDraw() {
 			int h = GetHeight();
 
 			Gdiplus::Rect dest(drawX_, drawY_, w, h);
-			if (showI >= 0 && showI < imageList_.size()) {
+			if (showI >= 0 && showI < (intptr_t)imageList_.size()) {
 				draw->graph_->DrawImage(imageList_[showI]->getImg(), dest);
 			}
 			//COUT(tt_("image ondraw"));
@@ -1465,7 +1476,7 @@ void sdf::ImageView::Init() {
 	handle_ = CreateWindow(
 		tt_("STATIC"),  // Predefined class; Unicode assumed
 		text.c_str(),      // Button text
-		WS_VISIBLE | WS_CHILD | SS_OWNERDRAW,  // Styles  |BS_OWNERDRAW
+		WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_CLIPCHILDREN,  // Styles  |BS_OWNERDRAW
 		pos.x,         // x position
 		pos.y,         // y position
 		pos.w,        // Button width
@@ -1505,7 +1516,7 @@ bool sdf::ImageView::ControlProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM 
 	switch (message) {
 	case WM_TIMER: {
 		showI += 1;
-		if (showI >= imageList_.size())
+		if (showI >= (intptr_t)imageList_.size())
 			showI = 0;
 		onDraw();
 		break;
@@ -1523,7 +1534,7 @@ void sdf::Button::Init() {
 
 	onMeasure();
 
-	DWORD sty = WS_TABSTOP | BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD;
+	DWORD sty = WS_TABSTOP | BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN;
 
 	if (!oldStyle) {
 		sty |= BS_OWNERDRAW;
@@ -1566,6 +1577,7 @@ void sdf::Button::Init() {
 bool sdf::Button::ControlProc(HWND, UINT msg, WPARAM, LPARAM lParam) {
 
 	switch (msg) {
+
 	case WM_CONTEXTMENU: {
 		COUT(tt_("button right click"));
 		break;
@@ -1801,8 +1813,8 @@ void sdf::Control::_removeFromParent(bool remove) {
 	auto par = parent_;
 	if (par) {
 		if (handle_) {
-			::SetParent(handle_, 0);
 			setHW(0, 0);
+			::SetParent(handle_, 0);
 		}
 		//hide();
 		parent_ = 0;

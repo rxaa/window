@@ -42,8 +42,8 @@ namespace sdf
 
 		//返回选中成员索引
 		//没有选中则返回-1
-		int getCheck() {
-			int checkI = 0;
+		intptr_t getCheck() {
+			intptr_t checkI = 0;
 			for (auto& cont : memberList_) {
 
 				CheckBox* check = dynamic_cast <CheckBox*>(cont.get());
@@ -59,7 +59,7 @@ namespace sdf
 
 		void setCheck(CheckBox* box)
 		{
-			int checkI = 0;
+			intptr_t checkI = 0;
 			for (auto& cont : memberList_) {
 
 				CheckBox* check = dynamic_cast <CheckBox*>(cont.get());
@@ -76,11 +76,11 @@ namespace sdf
 		}
 
 		///设置单选
-		void setCheck(int index)
+		void setCheck(intptr_t index)
 		{
 			DF_ASSERT(index >= 0);
-			DF_ASSERT(index < memberList_.size());
-			int checkI = 0;
+			DF_ASSERT(index < (intptr_t)memberList_.size());
+			intptr_t checkI = 0;
 			for (auto& cont : memberList_) {
 
 				CheckBox* check = dynamic_cast <CheckBox*>(cont.get());

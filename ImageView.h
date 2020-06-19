@@ -4,7 +4,7 @@ namespace sdf {
 	class ImageView
 		: public Control {
 	protected:
-		int showI = 0;
+		intptr_t showI = 0;
 	public:
 		Gdi gdi_;
 		std::vector<std::shared_ptr<Bitmap>> imageList_;
