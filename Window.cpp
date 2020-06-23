@@ -144,18 +144,18 @@ void sdf::Control::onMeasure() {
 	int32_t w = 0, h = 0;
 	getContentWH(w, h);
 
-	if (pos.wrapX || pos.wrapY) {
+	//if (pos.wrapX || pos.wrapY) {
 		//wrap,提前计算所有子成员
 		for (auto& sub : memberList_) {
 			sub->onMeasure();
 		}
-	}
+	//}
 	measureX_ = 0;
 	measureY_ = 0;
 
 	int32_t flexXsum = 0, flexYsum = 0;
 	int32_t flexWsum = 0, flexHsum = 0;
-	bool isRight = false;
+	//bool isRight = false;
 	//计算所有邻居flex
 	if (pos.flexX > 0 || pos.flexY > 0) {
 		int32_t oldMx = parent_->measureX_, oldMy = parent_->measureY_;
@@ -163,19 +163,18 @@ void sdf::Control::onMeasure() {
 			if (sub->pos.absolute)
 				continue;
 
+			//if (isRight) {//提前计算右侧邻节点
+			//	//sub->onMeasure();
+			//}
 
-			if (isRight) {//提前计算右侧邻节点
-				sub->onMeasure();
-			}
-
-			if (sub.get() == this) {
-				isRight = true;
-			}
+			//if (sub.get() == this) {
+			//	isRight = true;
+			//}
 
 
 			if (sub->pos.flexX > 0)
 				flexXsum += sub->pos.flexX;
-			else if (sub->pos.w > 0) {
+			else if (sub->pos.w > 0) {//待改进,-1需要sub->onMeasure();
 				flexWsum += sub->pos.w + sub->pos.marginRight + sub->pos.marginLeft;
 			}
 
@@ -281,6 +280,8 @@ void sdf::Control::doCreate() {
 
 	if (onCreate_) {
 		onCreate_();
+		if (onBind_)
+			onBind_();
 		onCreate_ = nullptr;
 		if (pos.w < 0 && pos.flexX < 1)
 			pos.wrapX = true;
@@ -338,13 +339,15 @@ void sdf::Control::drawMember(Gdi& gdi, DrawBuffer* draw) {
 LRESULT  __stdcall sdf::Control::ButtonProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
 
 	switch (message) {
+
 	case WM_COMMAND: {
 		auto l = LOWORD(wParam);
 		//auto h = HIWORD(wParam);
 		if (lParam) {
 			Control* controlP = GetUserData((HWND)lParam);
 			if (controlP) {
-				controlP->ControlProc(hDlg, message, wParam, lParam);
+				LRESULT ret;
+				controlP->ControlProc(hDlg, message, wParam, lParam, ret);
 				break;
 			}
 		}
@@ -363,12 +366,11 @@ LRESULT  __stdcall sdf::Control::ButtonProc(HWND hDlg, UINT message, WPARAM wPar
 
 	Control* cont = GetUserData(hDlg);
 	if (cont) {
-
-		auto contRes = cont->ControlProc(hDlg, message, wParam, lParam);
+		LRESULT ret;
+		auto contRes = cont->ControlProc(hDlg, message, wParam, lParam, ret);
 		if (!contRes)
-			return  0;
+			return ret;
 	}
-
 
 	auto res = controlComProc(hDlg, message, wParam, lParam);
 	if (res) {
@@ -409,7 +411,9 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 		LPDRAWITEMSTRUCT lpDIS = (LPDRAWITEMSTRUCT)lParam;
 		sdf::Control* controlP = sdf::Window::GetUserData(lpDIS->hwndItem);
 		if (controlP) {
-
+			/*if (lpDIS->itemAction == ODA_FOCUS) {
+				break;
+			}*/
 			if (lpDIS->itemState & ODS_SELECTED) {
 				controlP->isPress = true;
 			}
@@ -518,7 +522,8 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 			if (lParam) {
 				Control* controlP = GetUserData((HWND)lParam);
 				if (controlP) {
-					controlP->ControlProc(hDlg, message, wParam, lParam);
+					LRESULT ret;
+					controlP->ControlProc(hDlg, message, wParam, lParam, ret);
 					break;
 				}
 			}
@@ -853,8 +858,12 @@ void sdf::Window::onPaint() {
 
 void sdf::Window::AdjustLayout() {
 	//COUT(tcc_("AdjustLayout") << memberList_.size());
-	onLayout();
-	Control::adjustRecur(this);
+	
+		onLayout();
+	
+		
+		Control::adjustRecur(this);
+		
 	//drawMember(gdi_, getDraw());
 }
 
@@ -1094,17 +1103,17 @@ void sdf::ScrollView::onMeasure() {
 
 	measureX_ = 0;
 	measureY_ = 0;
-	contentW = 0;
-	contentH = 0;
+	contentW = pos.paddingLeft + pos.paddingRight;
+	contentH = pos.paddingTop + pos.paddingBottom;
 	for (auto& sub : memberList_) {
 		sub->onMeasure();
 		if (pos.vector) {
-			contentH += sub->showH_;
+			contentH += sub->showH_ + sub->pos.marginTop + sub->pos.marginBottom ;
 			if (sub->showW_ > contentW)
 				contentW = sub->showW_;
 		}
 		else {
-			contentW += sub->showW_;
+			contentW += sub->showW_ + sub->pos.marginLeft + sub->pos.marginRight;
 			if (sub->showH_ > contentH)
 				contentH = sub->showH_;
 		}
@@ -1202,7 +1211,7 @@ void sdf::ScrollView::onDraw() {
 
 	if (drawSub) {
 
-		
+
 
 		needDraw = false;
 		//df::TickClock([&] {
@@ -1230,7 +1239,6 @@ void sdf::ScrollView::onDraw() {
 
 
 	}
-
 
 
 }
@@ -1275,7 +1283,7 @@ void sdf::ScrollView::Init() {
 	setHoriScrollInfo(horiMax, horiPage);
 }
 
-bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam) {
+bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT& ret) {
 	switch (msg) {
 	case WM_MOUSEWHEEL: {
 		int zDelta = GET_WHEEL_DELTA_WPARAM(wParam) / 40 * -1;
@@ -1512,7 +1520,7 @@ void sdf::ImageView::Init() {
 	}
 }
 
-bool sdf::ImageView::ControlProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+bool sdf::ImageView::ControlProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& ret) {
 	switch (message) {
 	case WM_TIMER: {
 		showI += 1;
@@ -1574,10 +1582,14 @@ void sdf::Button::Init() {
 	initAllSub();
 }
 
-bool sdf::Button::ControlProc(HWND, UINT msg, WPARAM, LPARAM lParam) {
+bool sdf::Button::ControlProc(HWND, UINT msg, WPARAM, LPARAM lParam, LRESULT& ret) {
 
 	switch (msg) {
-
+	case WM_SETCURSOR: {
+		//COUT(tt_("WM_SETCURSOR"));
+		ret = true;
+		return false;
+	}
 	case WM_CONTEXTMENU: {
 		COUT(tt_("button right click"));
 		break;
@@ -1921,7 +1933,9 @@ void sdf::TextBox::Init() {
 		sty |= ES_PASSWORD;
 	}
 
-	handle_ = CreateWindow(
+	handle_ = CreateWindowEx(
+		//WS_EX_CLIENTEDGE,
+		0,
 		tt_("EDIT"),  // Predefined class; Unicode assumed
 		text.c_str(),      // Button text
 		sty,   // Styles  |BS_OWNERDRAW
@@ -1956,7 +1970,7 @@ void sdf::TextBox::Init() {
 }
 
 
-bool sdf::TextBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM) {
+bool sdf::TextBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& ret) {
 
 	if (msg == WM_PAINT) {
 
@@ -2032,7 +2046,7 @@ void sdf::ListBox::Init() {
 	initAllSub();
 }
 
-bool sdf::ListBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM) {
+bool sdf::ListBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& ret) {
 	if (msg == WM_PAINT) {
 		updateDrawXY();
 		//return false;
@@ -2115,7 +2129,7 @@ void sdf::ComBox::Init() {
 
 }
 
-bool sdf::ComBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM) {
+bool sdf::ComBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& ret) {
 	if (msg == WM_PAINT) {
 		updateDrawXY();
 		//return false;
@@ -2264,8 +2278,14 @@ void sdf::CheckBox::onDrawText(RECT& rect, DrawBuffer* draw) {
 	draw->buttonBmp_.Txt(rect, text);
 }
 
-bool sdf::CheckBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM) {
-	if (msg == WM_COMMAND) {
+bool sdf::CheckBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& ret) {
+	switch (msg) {
+	case WM_SETCURSOR: {
+		//COUT(tt_("WM_SETCURSOR"));
+		ret = true;
+		return false;
+	}
+	case WM_COMMAND: {
 		switch (HIWORD(wParam)) {
 		case BN_CLICKED:
 			CheckGroup* check = dynamic_cast <CheckGroup*>(parent_);
@@ -2280,7 +2300,10 @@ bool sdf::CheckBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM) {
 				onClick_();
 			break;
 		}
+		break;
 	}
+	}
+
 	return true;
 }
 

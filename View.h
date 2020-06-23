@@ -31,7 +31,7 @@ namespace sdf {
 	protected:
 		///初始化
 		virtual void Init();
-		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) override {
+		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT& ret) override {
 			return true;
 		}
 

@@ -95,7 +95,7 @@ namespace sdf
 
 		///初始化
 		virtual void Init();
-		bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
+		bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT& ret) override;
 
 	};
 

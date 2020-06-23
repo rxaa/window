@@ -30,7 +30,7 @@ namespace sdf
 
 	protected:
 
-		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
+		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT& ret) override;
 	};
 
 

@@ -27,6 +27,7 @@ namespace sdf {
 			purple = 0xFFd85ad8,
 			//浅蓝
 			blueLight = 0xFFd0edfe,
+            blueLight2 = 0xFFeef9ff,
 			yellow = 0xFFf3dd60,
 			yellowLight = 0xFFfff8d1,
 			//蓝色

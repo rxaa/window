@@ -40,7 +40,7 @@ namespace sdf
 		virtual void Init();
 
 
-		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
+		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT& ret) override;
 	};
 
 }

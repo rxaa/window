@@ -27,11 +27,6 @@ namespace sdf
 				delete drawBuff_;
 		}
 
-		virtual void doCreate() override {
-			Control::doCreate();
-		}
-
-		
 
 		static int getScrollWidth() {
 			return  GetSystemMetrics(SM_CXVSCROLL);
@@ -118,7 +113,7 @@ namespace sdf
 
 	
 
-		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
+		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT& ret) override;
 	};
 
 	typedef  std::shared_ptr<sdf::ScrollView> PtrScrollView;

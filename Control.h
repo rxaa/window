@@ -24,7 +24,6 @@ namespace sdf {
 		friend class ImageView;
 
 		friend class ScrollView;
-
 		friend class Window;
 
 		//最近一次创建的窗口,用于OnInit
@@ -66,6 +65,7 @@ namespace sdf {
 		bool isTop = false;
 	public:
 		std::function<void()> onCreate_;
+		std::function<void()> onBind_;
 		friend Window;
 		bool isHover = false;
 		bool isFocused = false;
@@ -102,6 +102,11 @@ namespace sdf {
 
 
 
+		template<class T>
+		inline std::shared_ptr<T>&& castMember(size_t index) {
+			DF_ASSERT(index < memberList_.size());
+			return std::static_pointer_cast<T>(memberList_[index]);
+		}
 
 		virtual ~Control() {
 			ReleaseUserData();
@@ -228,6 +233,14 @@ namespace sdf {
 			updateDrawXY();
 		}
 
+		virtual void bindUpdate(bool draw = true) {
+			if (onBind_) {
+				onBind_();
+			}
+			for (auto& sub : memberList_) {
+				sub->bindUpdate(false);
+			}
+		}
 
 
 		virtual void onDrawText(RECT& rect, DrawBuffer* draw) {
@@ -391,9 +404,9 @@ namespace sdf {
 		}
 
 		void setText(const df::CC& str) {
-			DF_ASSERT(handle_ != NULL);
 			text = str.c_str();
-			::SetWindowText(handle_, str.char_);
+			if (handle_)
+				::SetWindowText(handle_, str.char_);
 		}
 
 
@@ -437,7 +450,6 @@ namespace sdf {
 			re.right = pos.w;
 			re.bottom = pos.h;
 			::InvalidateRect(handle_, &re, true);
-
 			//::UpdateWindow(handle_);
 		}
 
@@ -457,13 +469,15 @@ namespace sdf {
 		// Summary : 返回false取消此消息
 		// Returns - bool :
 		//*******************************************
-		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM) {
+		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT&) {
 			return true;
 		}
 
 		virtual bool ControlNotify(LPNMHDR) {
 			return true;
 		}
+
+		virtual void doCreate();
 
 	protected:
 
@@ -480,8 +494,9 @@ namespace sdf {
 			cont->measureX_ = 0;
 			cont->measureY_ = 0;
 			for (auto& control : cont->memberList_) {
-				control->onMeasure();
+					control->onMeasure();
 				adjustRecur(control.get());
+
 			}
 		}
 
@@ -523,8 +538,6 @@ namespace sdf {
 		virtual void Init();
 
 
-		virtual void doCreate();
-
 		void initAllSub() {
 			measureX_ = 0;
 			measureY_ = 0;
@@ -561,6 +574,7 @@ namespace sdf {
 #define ui_control(Name_) std::shared_ptr<Name_> DF_MIX_LINENAME(UIBUTTON, __LINE__)=std::make_shared<Name_>();v._addSub(DF_MIX_LINENAME(UIBUTTON, __LINE__));DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&,&v=*DF_MIX_LINENAME(UIBUTTON, __LINE__)]()
 #define ui_control2(Name_, Paras_) std::shared_ptr<Name_> DF_MIX_LINENAME(UIBUTTON, __LINE__)=std::make_shared<Name_>(Paras_);v._addSub(DF_MIX_LINENAME(UIBUTTON, __LINE__));DF_MIX_LINENAME(UIBUTTON, __LINE__)->onCreate_=[&,&v=*DF_MIX_LINENAME(UIBUTTON, __LINE__)]()
 
+#define ui_bind v.onBind_=[&]()
 
 #include "View.h"
 #include "Button.h"
@@ -570,6 +584,7 @@ namespace sdf {
 #include "ListBox.h"
 #include "ComBox.h"
 #include "CheckBox.h"
+#include "ListView.h"
 #include "Tray.h"
 #include "Window.h"
 #include "FormMenu.h"

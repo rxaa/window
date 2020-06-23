@@ -90,10 +90,12 @@ namespace sdf
 		}
 
 		virtual void onHover() {
+			SetCursor(LoadCursor(NULL, IDC_HAND));
 			onDraw();
 		}
 
 		virtual void onLeave() {
+			//SetCursor(LoadCursor(NULL, IDC_ARROW));
 			onDraw();
 		}
 
@@ -114,7 +116,7 @@ namespace sdf
 		//初始化位于initCreate之后执行
 		virtual void Init();
 
-		bool ControlProc(HWND, UINT, WPARAM, LPARAM) override;
+		bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT&) override;
 
 	};
 
