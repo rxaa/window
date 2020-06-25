@@ -27,7 +27,7 @@ namespace sdf {
 			purple = 0xFFd85ad8,
 			//浅蓝
 			blueLight = 0xFFd0edfe,
-            blueLight2 = 0xFFeef9ff,
+			blueLight2 = 0xFFeef9ff,
 			yellow = 0xFFf3dd60,
 			yellowLight = 0xFFfff8d1,
 			//蓝色
@@ -220,14 +220,17 @@ namespace sdf {
 			return screen;
 		}
 
-
+		static Gdi& gobalGdi() {
+			static Gdi g(::CreateCompatibleDC(::GetDC(0)));
+			return g;
+		}
 
 		inline void ReleaseDc() {
 			if (hdc_) {
 				::DeleteDC(hdc_);
 				hdc_ = nullptr;
 			}
-				
+
 		}
 
 		void Init(Control& cont);
@@ -276,10 +279,10 @@ namespace sdf {
 		}
 
 		//获取文字像素总宽
-		inline UINT GetTextPixel(const df::CC& str) {
+		inline SIZE GetTextPixel(const df::CC& str) {
 			SIZE wid;
 			GetTextExtentPoint32(hdc_, str.char_, (int)str.length_, &wid);
-			return wid.cx;
+			return wid;
 		}
 
 		///输出文字
@@ -287,10 +290,33 @@ namespace sdf {
 			return ::TextOut(hdc_, x, y, str.char_, (int)str.length_);
 		}
 
-		///向RECT中央输出文字单行
-		inline BOOL Txt(RECT& rect, const df::CC& str) const {
-			return ::DrawText(hdc_, str.char_, (int)str.length_, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		///向RECT中央输出多行
+		inline BOOL TxtMutiLine(RECT& rect, const df::CC& str) const {
+			UINT format = DT_WORDBREAK;
+			return ::DrawText(hdc_, str.char_, (int)str.length_, &rect, format);
 		}
+		///向RECT中央输出文字单行
+		inline BOOL Txt(RECT& rect, const df::CC& str, AlignType alignX = AlignType::center, AlignType alignY = AlignType::center) const {
+
+			UINT format = DT_SINGLELINE;
+			if (alignX == AlignType::center)
+				format |= DT_CENTER;
+			else if (alignX == AlignType::end)
+				format |= DT_RIGHT;
+			else
+				format |= DT_LEFT;
+
+			if (alignY == AlignType::center)
+				format |= DT_VCENTER;
+			else if (alignY == AlignType::end)
+				format |= DT_BOTTOM;
+			else
+				format |= DT_TOP;
+
+			return ::DrawText(hdc_, str.char_, (int)str.length_, &rect, format);
+		}
+
+
 
 		inline BOOL Fill(RECT& rect, HBRUSH brush = Brush::GetNullBrush()) {
 			return ::FillRect(hdc_, &rect, brush);

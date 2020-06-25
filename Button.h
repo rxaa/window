@@ -16,13 +16,29 @@ namespace sdf
 		bool oldStyle = false;
 		bool isCheck = false;
 		ControlStyle styleCheck;
+		ControlStyle styleFocused;
 		Button()
 		{
 			pos.paddingX(10);
 			pos.paddingY(6);
 		}
 
-		static void setMenuStyle(sdf::Button*  but) {
+		void fontSize(uint32_t size) {
+			Control::fontSize(size);
+			styleCheck.font.size = size;
+			styleFocused.font.size = size;
+		}
+
+		void fontBold() {
+			if (style.font.size == 0) {
+				fontSize(Font::initSize);
+			}
+			Control::fontBold();
+			styleCheck.font.bold = true;
+			styleFocused.font.bold = true;
+		}
+
+		static void setMenuStyle(sdf::Button* but) {
 			but->pos.paddingX(12);
 			but->pos.paddingY(7);
 			but->style.backColor = Color::white;
@@ -89,6 +105,10 @@ namespace sdf
 			//COUT(tt_("gone"));
 		}
 
+		virtual void onPress(bool down) {
+			onDraw();
+		}
+
 		virtual void onHover() {
 			SetCursor(LoadCursor(NULL, IDC_HAND));
 			onDraw();
@@ -100,7 +120,7 @@ namespace sdf
 		}
 
 		virtual void getContentWH(int32_t& w, int32_t& h) {
-			w = Gdi::GetScreen().GetTextPixel(text);
+			w = Gdi::GetScreen().GetTextPixel(text).cx;
 			if (w > 0)
 				h = GlobalFont().GetFontSize();
 		}

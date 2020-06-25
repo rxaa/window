@@ -23,10 +23,10 @@ namespace sdf
 		}
 		virtual void getContentWH(int32_t& w, int32_t& h) {
 			h = GlobalFont().GetFontSize() + 4;
-			w = Gdi::GetScreen().GetTextPixel(text) + h + 3;
+			w = Gdi::GetScreen().GetTextPixel(text).cx + h + 3;
 		}
 
-		virtual void onDrawText(RECT& rect, DrawBuffer* draw) override;
+		virtual void onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw) override;
 
 	protected:
 

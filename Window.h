@@ -9,11 +9,9 @@ namespace sdf {
 		DF_DISABLE_COPY_ASSIGN(Window);
 	protected:
 
-
 		static Bitmap backGround_;
 
 		Brush backBrush_;
-
 
 		std::map<int, std::function<void()>> commandMap_;
 		//自我引用, onClose时销毁
@@ -216,12 +214,7 @@ namespace sdf {
 
 		virtual void onPaint();
 
-		//参数为ture :按下 false 抬起
-		virtual void onMouseLeft(bool) {}
-
-		virtual void onMouseRight(bool) {}
-
-		virtual void onKeyUp(int) {}
+	
 
 		virtual void onTimer(UINT) {}
 

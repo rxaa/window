@@ -35,7 +35,7 @@ namespace sdf {
 		}
 
 		virtual void getContentWH(int32_t& w, int32_t& h) {
-			w = Gdi::GetScreen().GetTextPixel(text);
+			w = Gdi::GetScreen().GetTextPixel(text).cx;
 			if (w > 0) {
 				h = GlobalFont().GetFontSize();
 			}

@@ -2,6 +2,7 @@
 #define Control_h__2013_8_1__9_24
 
 #include "ControlData.h"
+#include "Font.h"
 
 namespace sdf {
 
@@ -31,7 +32,6 @@ namespace sdf {
 		static Window* parentWindow_;
 		static Window* currentWindow_;
 
-
 		void InitUserData() const {
 			::SetWindowLongPtr(handle_, GWLP_USERDATA, (LONG_PTR)this);
 		}
@@ -59,8 +59,6 @@ namespace sdf {
 
 		//是否需要绘制到屏幕
 		bool needDraw = true;
-		//来自消息循环的重绘事件
-		bool msgDraw = false;
 		//是否顶层节点
 		bool isTop = false;
 	public:
@@ -87,7 +85,6 @@ namespace sdf {
 		ControlStyle stylePress;
 		ControlStyle styleHover;
 		ControlStyle styleDisable;
-		ControlStyle styleFocused;
 
 
 		String text;
@@ -100,10 +97,24 @@ namespace sdf {
 		Control() {
 		}
 
-
+		void fontSize(uint32_t size) {
+			style.font.size = size;
+			stylePress.font.size = size;
+			styleHover.font.size = size;
+			styleDisable.font.size = size;
+		}
+		void fontBold() {
+			if (style.font.size == 0) {
+				fontSize(Font::initSize);
+			}
+			style.font.bold = true;
+			stylePress.font.bold = true;
+			styleHover.font.bold = true;
+			styleDisable.font.bold = true;
+		}
 
 		template<class T>
-		inline std::shared_ptr<T>&& castMember(size_t index) {
+		inline std::shared_ptr<T>  castMember(size_t index) {
 			DF_ASSERT(index < memberList_.size());
 			return std::static_pointer_cast<T>(memberList_[index]);
 		}
@@ -142,12 +153,18 @@ namespace sdf {
 		/// <returns></returns>
 		bool drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentBack = false);
 
+		Font& getFont() {
+			if (style.font.hasFont()) {
+				return Font::getFont(style.font);
+			}
+			return GlobalFont();
+		}
+
 		void setBackColor(int32_t color) {
 			style.backColor = color;
 			stylePress.backColor = color;
 			styleHover.backColor = color;
 			styleDisable.backColor = color;
-			styleFocused.backColor = color;
 		}
 
 		Control* getParent() {
@@ -178,10 +195,10 @@ namespace sdf {
 
 			int32_t dX = getDrawX();
 			int32_t dY = getDrawY();
-			int32_t w = GetWidth();
-			int32_t h = GetHeight();
-			if (dX + w < parent_->drawX_ || dX >  parent_->drawX_ + parent_->GetWidth() ||
-				dY + h <  parent_->drawY_ || dY > parent_->drawY_ + parent_->GetHeight()
+			int32_t w = GetWidth() + parent_->pos.paddingLeft + parent_->pos.paddingRight;
+			int32_t h = GetHeight() + parent_->pos.paddingTop + parent_->pos.paddingBottom;
+			if (dX + w < parent_->drawX_ || dX >  parent_->drawX_ + parent_->GetWidth() + parent_->pos.paddingLeft + parent_->pos.paddingRight ||
+				dY + h <  parent_->drawY_ || dY > parent_->drawY_ + parent_->GetHeight() + parent_->pos.paddingTop + parent_->pos.paddingBottom
 				) {
 				return true;
 			}
@@ -229,6 +246,10 @@ namespace sdf {
 
 		}
 
+		virtual void onPress(bool down) {
+
+		}
+
 		virtual void onDraw() {
 			updateDrawXY();
 		}
@@ -240,17 +261,20 @@ namespace sdf {
 			for (auto& sub : memberList_) {
 				sub->bindUpdate(false);
 			}
+			onDraw();
 		}
 
 
-		virtual void onDrawText(RECT& rect, DrawBuffer* draw) {
-			if (draw)
-				draw->buttonBmp_.Txt(rect, text);
-		}
+		virtual void onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw);
 
 		virtual void getContentWH(int32_t& w, int32_t& h) {
 			w = 0;
 			h = 0;
+		}
+
+		
+		virtual void reGetContentWH(int32_t& w, int32_t& h) {
+			
 		}
 
 		virtual void onMeasure();
@@ -387,7 +411,10 @@ namespace sdf {
 
 
 		int getTextLength() const {
-			return ::GetWindowTextLength(handle_);
+			if (handle_)
+				return ::GetWindowTextLength(handle_);
+			else
+				return (int)text.size();
 		}
 
 		df::String& getText() {
@@ -396,7 +423,11 @@ namespace sdf {
 		}
 
 		df::String& getText(df::String& text) const {
-			DF_ASSERT(handle_ != NULL);
+			if (!handle_) {
+				text = this->text;
+				return text;
+			}
+
 			int res = ::GetWindowTextLength(handle_);
 			text.resize(res);
 			GetWindowText(handle_, &text[0], (int)text.capacity());
@@ -414,13 +445,6 @@ namespace sdf {
 			::SendMessage(handle_, EM_SETLIMITTEXT, nMax, 0);
 		}
 
-		void setBitmap(HBITMAP hBitmap) {
-			::SendMessage(handle_, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hBitmap);
-		}
-
-		HBITMAP getBitmap() const {
-			return (HBITMAP) ::SendMessage(handle_, STM_GETIMAGE, IMAGE_BITMAP, 0L);
-		}
 
 		void setFont(const Font& font) {
 			::SendMessage(handle_, WM_SETFONT, (WPARAM)font.GetFont(), TRUE);
@@ -444,12 +468,12 @@ namespace sdf {
 		}
 
 		void update() {
-			RECT re;
+			/*RECT re;
 			re.left = 0;
 			re.top = 0;
 			re.right = pos.w;
-			re.bottom = pos.h;
-			::InvalidateRect(handle_, &re, true);
+			re.bottom = pos.h;*/
+			::InvalidateRect(handle_, NULL, true);
 			//::UpdateWindow(handle_);
 		}
 
@@ -494,9 +518,8 @@ namespace sdf {
 			cont->measureX_ = 0;
 			cont->measureY_ = 0;
 			for (auto& control : cont->memberList_) {
-					control->onMeasure();
+				control->onMeasure();
 				adjustRecur(control.get());
-
 			}
 		}
 

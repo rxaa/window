@@ -86,11 +86,14 @@ namespace sdf
 
 		}
 		virtual void onDraw() {
-			//COUT(tt_("重绘ComBox"));
+			COUT(tt_("重绘ComBox"));
 			updateDrawXY();
-			//update();
+			update();
+			DrawBuffer* draw = getDraw();
+			gdi_.DrawTo(draw->buttonBmp_, drawX_, drawY_, pos.w, pos.h);
 		}
 	protected:
+		Gdi gdi_;
 		std::unique_ptr<std::vector<String>> initList;
 
 		///初始化

@@ -8,7 +8,7 @@ namespace sdf
 		: public Control
 	{
 	public:
-		//Gdi gdi_;
+
 		//多行显示
 		bool mutiLine = false;
 		bool onlyNumber = false;
@@ -31,11 +31,15 @@ namespace sdf
 		virtual void onDraw() {
 			//COUT(tt_("重绘TextBox"));
 			updateDrawXY();
+			DrawBuffer* draw = getDraw();
 			update();
+			if (pos.w > 0 && pos.h > 0)
+				gdi_.DrawTo(draw->buttonBmp_, drawX_, drawY_, pos.w, pos.h);
+
 		}
 
 	protected:
-
+		Gdi gdi_;
 		///初始化
 		virtual void Init();
 

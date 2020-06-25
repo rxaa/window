@@ -1,8 +1,9 @@
 ﻿#include "StdAfx.h"
 
 #include "Control.h"
+#include "Font.h"
 
-
+std::unordered_map<FontType, sdf::Font> sdf::Font::cache_;
 HWND sdf::Control::currentHandle_ = NULL;
 sdf::Window* sdf::Control::parentWindow_ = NULL;
 
@@ -31,6 +32,25 @@ sdf::Font::Font(long size, df::CC name) {
 		name.length_ = 31;
 	memcpy(logFont_.lfFaceName, name.char_, name.length_ * sizeof(TCHAR));
 	logFont_.lfHeight = size;
+	font_ = CreateFontIndirect(&logFont_);
+}
+
+sdf::Font::Font(const FontType& type)
+{
+	rawSize = type.size;
+	auto size = (long)((float)type.size * Window::getScale());
+	memset(&logFont_, 0, sizeof(LOGFONT));
+	auto fonts = FontType::getFontName();
+	auto fontI = type.font >= fonts.size() ? 0 : type.font;
+	auto name = fonts[fontI];
+	std::memcpy(logFont_.lfFaceName, name.char_, name.length_ * sizeof(TCHAR));
+	logFont_.lfHeight = size;
+	if (type.bold) {
+		logFont_.lfWeight = FW_SEMIBOLD;
+	}
+	logFont_.lfItalic = type.italic;
+	logFont_.lfUnderline = type.underLine;
+	logFont_.lfStrikeOut = type.strikeOut;
 	font_ = CreateFontIndirect(&logFont_);
 }
 
@@ -124,6 +144,29 @@ void sdf::Control::measureWrapY(int32_t minH) {
 	pos.h = subH + pos.paddingTop + pos.paddingBottom;
 }
 
+void sdf::Control::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw)
+{
+	if (draw) {
+
+		if (pos.textAlignX != AlignType::center || pos.textMutiline) {
+			rect.left += pos.paddingLeft;
+			rect.top += pos.paddingTop;
+		}
+
+		if (pos.textAlignY != AlignType::center || pos.textMutiline) {
+			rect.right -= pos.paddingRight;
+			rect.bottom -= pos.paddingBottom;
+		}
+	
+	
+
+		if (pos.textMutiline)
+			draw->buttonBmp_.TxtMutiLine(rect, text);
+		else
+			draw->buttonBmp_.Txt(rect, text, pos.textAlignX, pos.textAlignY);
+	}
+}
+
 void sdf::Control::onMeasure() {
 	if (parent_ == nullptr) {
 		return;
@@ -146,9 +189,9 @@ void sdf::Control::onMeasure() {
 
 	//if (pos.wrapX || pos.wrapY) {
 		//wrap,提前计算所有子成员
-		for (auto& sub : memberList_) {
-			sub->onMeasure();
-		}
+	for (auto& sub : memberList_) {
+		sub->onMeasure();
+	}
 	//}
 	measureX_ = 0;
 	measureY_ = 0;
@@ -217,19 +260,32 @@ void sdf::Control::onMeasure() {
 		}
 	}
 	else if (pos.wrapY) {
+		reGetContentWH(w, h);
 		measureWrapY(h);
 	}
 	else {
 
 	}
 
-	if ((pos._centerInParentX || parent_->pos._centerX) && parent_->pos.w > 0 && pos.w > 0) {
-		pos.x = (parent_->pos.w - pos.w) / 2;
+	if (parent_->pos.w > 0 && pos.w > 0) {
+		if (pos.alignInParentX == AlignType::center || parent_->pos.alignX == AlignType::center) {
+			pos.x = (parent_->pos.w - pos.w) / 2;
+		}
+		else if (pos.alignInParentX == AlignType::end || parent_->pos.alignX == AlignType::end) {
+			pos.x = parent_->pos.w - pos.w - parent_->pos.paddingRight - pos.marginRight;
+		}
 	}
 
-	if ((pos._centerInParentY || parent_->pos._centerY) && parent_->pos.h > 0 && pos.h > 0) {
-		pos.y = (parent_->pos.h - pos.h) / 2;
+
+	if (parent_->pos.h > 0 && pos.h > 0) {
+		if (pos.alignInParentY == AlignType::center || parent_->pos.alignY == AlignType::center) {
+			pos.y = (parent_->pos.h - pos.h) / 2;
+		}
+		else if (pos.alignInParentY == AlignType::end || parent_->pos.alignY == AlignType::end) {
+			pos.y = parent_->pos.h - pos.h - parent_->pos.paddingBottom - pos.marginBottom;
+		}
 	}
+
 
 	if ((pos.x != showX_ || pos.y != showY_ || pos.w != showW_ || pos.h != showH_))
 		setPosAndHW(pos.x, pos.y, pos.w, pos.h);
@@ -391,7 +447,7 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 		//文本样式
 		HDC hdc = (HDC)wParam;
 		HWND hwnd = (HWND)lParam;
-		if (cont->style.color) {
+		if (cont && cont->style.color) {
 			SetTextColor(hdc, Color::toRGB(Color::red));
 			//SetBkMode(hdc, TRANSPARENT);
 			return (intptr_t)Brush::GetWhiteBrush();
@@ -405,42 +461,38 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 		//返回空背景
 		return (intptr_t)Brush::GetNullBrush();
 	}
-	case WM_DRAWITEM: {
-		//COUT(tt_("WM_DRAWITEM"));
-		//声明一个指向DRAWITEMSTRUCT结构体的指针并将其指向存储着按钮构造信息的lParam
-		LPDRAWITEMSTRUCT lpDIS = (LPDRAWITEMSTRUCT)lParam;
-		sdf::Control* controlP = sdf::Window::GetUserData(lpDIS->hwndItem);
-		if (controlP) {
-			/*if (lpDIS->itemAction == ODA_FOCUS) {
-				break;
-			}*/
-			if (lpDIS->itemState & ODS_SELECTED) {
-				controlP->isPress = true;
-			}
-			else {
-				controlP->isPress = false;
-				//在按钮内抬起
-				if (sdf::Control::mouseHandle_ == controlP) {
-					controlP->isHover = true;
+					   //case WM_DRAWITEM: {
+					   //	//COUT(tt_("WM_DRAWITEM"));
+					   //	//声明一个指向DRAWITEMSTRUCT结构体的指针并将其指向存储着按钮构造信息的lParam
+					   //	LPDRAWITEMSTRUCT lpDIS = (LPDRAWITEMSTRUCT)lParam;
+					   //	sdf::Control* controlP = sdf::Window::GetUserData(lpDIS->hwndItem);
+					   //	if (controlP) {
+					   //	
+					   //		if (lpDIS->itemState & ODS_SELECTED) {
+					   //			controlP->isPress = true;
+					   //		}
+					   //		else {
+					   //			controlP->isPress = false;
+					   //			//在按钮内抬起
+					   //			if (sdf::Control::mouseHandle_ == controlP) {
+					   //				controlP->isHover = true;
 
-				}
-				//在按钮外抬起
-				else {
-					controlP->isHover = false;
+					   //			}
+					   //			//在按钮外抬起
+					   //			else {
+					   //				controlP->isHover = false;
 
-				}
-			}
-			/*if (controlP->showOverflow()) {
-				break;
-			}*/
-			controlP->msgDraw = true;
-			controlP->onDraw();
-			controlP->msgDraw = false;
-		}
-		break;
-	}
+					   //			}
+					   //		}
 
-					//移出窗口
+					   //		controlP->msgDraw = true;
+					   //		controlP->onDraw();
+					   //		controlP->msgDraw = false;
+					   //	}
+					   //	break;
+					   //}
+
+									   //移出窗口
 	case WM_NCMOUSEMOVE: {
 		//case WM_NCMOUSELEAVE: {
 		if (sdf::Control::mouseHandle_) {
@@ -453,6 +505,55 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 		}
 		break;
 	}
+					   //case WM_GESTURE: {
+					   //	GESTUREINFO gestureInfo = { 0 };
+					   //	gestureInfo.cbSize = sizeof(gestureInfo);
+					   //	if (GetGestureInfo((HGESTUREINFO)lParam, &gestureInfo)) {
+					   //		switch (gestureInfo.dwID) {
+					   //		case GID_ZOOM:
+					   //			// Code for zooming goes here     
+					   //			break;
+					   //		case GID_PAN:
+					   //			// Code for panning goes here
+					   //			break;
+					   //		case GID_ROTATE:
+					   //			// Code for rotation goes here
+					   //			break;
+					   //		case GID_TWOFINGERTAP:
+					   //			// Code for two-finger tap goes here
+					   //			break;
+					   //		case GID_PRESSANDTAP: {
+					   //			COUT(tt_("GID_PRESSANDTAP\r\n"));
+					   //			if (gestureInfo.dwFlags == GF_BEGIN) {
+					   //				if (cont)
+					   //					cont->onPress(true);
+					   //			}
+					   //			else if (gestureInfo.dwFlags == GF_END) {
+					   //				if (cont)
+					   //					cont->onPress(false);
+					   //			}
+					   //			// Code for roll over goes here
+					   //			break;
+					   //		}
+					   //		default:
+					   //			// A gesture was not recognized
+					   //			break;
+					   //		}
+					   //	}
+					   //	break;
+					   //}
+	case WM_LBUTTONDOWN:
+		if (cont) {
+			cont->isPress = true;
+			cont->onPress(true);
+		}
+		break;
+	case WM_LBUTTONUP:
+		if (cont) {
+			cont->isPress = false;
+			cont->onPress(false);
+		}
+		break;
 	case WM_MOUSEMOVE: {
 		sdf::Window::GetMousePos(lParam);
 
@@ -565,22 +666,14 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 			winP->onMove();
 			break;
 		}
-		case WM_RBUTTONDOWN:
-			winP->onMouseRight(true);
-			break;
-		case WM_RBUTTONUP:
-			winP->onMouseRight(false);
-			break;
-		case WM_LBUTTONDOWN:
-			winP->onMouseLeft(true);
-			break;
-		case WM_LBUTTONUP:
-			winP->onMouseLeft(false);
-			break;
+
 		case WM_TIMER:
 			winP->onTimer((UINT)wParam);
 			break;
 		case WM_PAINT: {
+			for (auto& sub : winP->memberList_) {
+				sub->onDraw();
+			}
 			//PAINTSTRUCT ps={0} ;
 			//HDC dd=BeginPaint (hDlg, &ps) ;
 			//COUT(t_t("dc:")<<winP->gdi_.GetDc()<<t_t(" - ")<<dd);
@@ -628,7 +721,7 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 }
 
 void sdf::Window::setPosXY() {
-	if (pos._centerInParentX) {
+	if (pos.alignInParentX == AlignType::center) {
 		if (parent_) {
 			pos.x = parent_->pos.x + (parent_->pos.w - pos.w) / 2;
 		}
@@ -637,7 +730,7 @@ void sdf::Window::setPosXY() {
 		}
 
 	}
-	if (pos._centerInParentY) {
+	if (pos.alignInParentY == AlignType::center) {
 		if (parent_) {
 			pos.y = parent_->pos.y + (parent_->pos.h - pos.h) / 2;
 		}
@@ -743,8 +836,9 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 
 	ptr_ = sharedBase<Window>();
 
-	if (pos.w > 0 && pos.h > 0)
+	if (pos.w > 0 && pos.h > 0) {
 		drawBuff_->newBmp(pos.w, pos.h);
+	}
 
 	InitWinData();
 	::SendMessage(handle_, WM_SETFONT, (WPARAM)Window::GlobalFont().GetFont(), TRUE);
@@ -858,12 +952,12 @@ void sdf::Window::onPaint() {
 
 void sdf::Window::AdjustLayout() {
 	//COUT(tcc_("AdjustLayout") << memberList_.size());
-	
-		onLayout();
-	
-		
-		Control::adjustRecur(this);
-		
+
+	onLayout();
+
+
+	Control::adjustRecur(this);
+
 	//drawMember(gdi_, getDraw());
 }
 
@@ -1076,10 +1170,7 @@ void sdf::View::onDraw() {
 	}
 	else {
 
-		if (msgDraw && !parent_->isTop) {
-			//作为子成员无需单独绘制
-			return;
-		}
+
 		auto draw = getDraw();
 
 		updateDrawXY();
@@ -1108,7 +1199,7 @@ void sdf::ScrollView::onMeasure() {
 	for (auto& sub : memberList_) {
 		sub->onMeasure();
 		if (pos.vector) {
-			contentH += sub->showH_ + sub->pos.marginTop + sub->pos.marginBottom ;
+			contentH += sub->showH_ + sub->pos.marginTop + sub->pos.marginBottom;
 			if (sub->showW_ > contentW)
 				contentW = sub->showW_;
 		}
@@ -1182,10 +1273,6 @@ void sdf::ScrollView::onDraw() {
 		return;
 
 
-	if (msgDraw && !parent_->isTop) {
-		//作为子成员无需单独绘制
-		return;
-	}
 
 	updateDrawXY();
 
@@ -1273,9 +1360,10 @@ void sdf::ScrollView::Init() {
 	gdi_.SetTextBackColor();
 	//背景透明
 	//gdi_.SetBrush(Brush::GetNullBrush());
-	//使用全局字体
-	gdi_.setFont(Window::GlobalFont());
-
+	if (style.font.hasFont())
+		gdi_.setFont(Font::getFont(style.font));
+	else
+		gdi_.setFont(Window::GlobalFont());
 	prevMsgProc_ = (WNDPROC)SetWindowLongPtr(handle_, GWLP_WNDPROC, (LONG_PTR)Control::ButtonProc);
 	initAllSub();
 
@@ -1431,8 +1519,12 @@ void sdf::View::Init() {
 	gdi_.SetTextBackColor();
 	//背景透明
 	//gdi_.SetBrush(Brush::GetNullBrush());
-	//使用全局字体
-	gdi_.setFont(Window::GlobalFont());
+	if (style.font.hasFont()) {
+		gdi_.setFont(Font::getFont(style.font));
+	}
+	else {
+		gdi_.setFont(Control::GlobalFont());
+	}
 
 	prevMsgProc_ = (WNDPROC)SetWindowLongPtr(handle_, GWLP_WNDPROC, (LONG_PTR)Control::ButtonProc);
 	initAllSub();
@@ -1451,10 +1543,7 @@ void sdf::ImageView::onDraw() {
 	else if (isHover) {
 	}
 	else {
-		if (msgDraw && !parent_->isTop) {
-			//作为子成员无需单独绘制
-			return;
-		}
+
 		updateDrawXY();
 
 		DrawBuffer* draw = getDraw();
@@ -1510,7 +1599,10 @@ void sdf::ImageView::Init() {
 	//背景透明
 	//gdi_.SetBrush(Brush::GetNullBrush());
 	//使用全局字体
-	gdi_.setFont(Window::GlobalFont());
+	if (style.font.hasFont())
+		gdi_.setFont(Font::getFont(style.font));
+	else
+		gdi_.setFont(Window::GlobalFont());
 
 	prevMsgProc_ = (WNDPROC)SetWindowLongPtr(handle_, GWLP_WNDPROC, (LONG_PTR)Control::ButtonProc);
 	initAllSub();
@@ -1541,8 +1633,8 @@ void sdf::Button::Init() {
 	}
 
 	onMeasure();
-
-	DWORD sty = WS_TABSTOP | BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN;
+	//WS_TABSTOP | 
+	DWORD sty = BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN;
 
 	if (!oldStyle) {
 		sty |= BS_OWNERDRAW;
@@ -1575,8 +1667,10 @@ void sdf::Button::Init() {
 	buttonGdi_.SetTextBackColor();
 	//背景透明
 	//buttonGdi_.SetBrush(Brush::GetNullBrush());
-	//使用全局字体
-	buttonGdi_.setFont(Window::GlobalFont());
+	if (style.font.hasFont())
+		buttonGdi_.setFont(Font::getFont(style.font));
+	else
+		buttonGdi_.setFont(Control::GlobalFont());
 
 	prevMsgProc_ = (WNDPROC)SetWindowLongPtr(handle_, GWLP_WNDPROC, (LONG_PTR)Control::ButtonProc);
 	initAllSub();
@@ -1803,7 +1897,13 @@ bool sdf::Control::drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentB
 
 	if (text.length() > 0) {
 		draw->buttonBmp_.SetTextColor(style.color);
-		onDrawText(rect, draw);
+		if (style.font.hasFont()) {
+			draw->buttonBmp_.setFont(Font::getFont(style.font));
+		}
+		else {
+			draw->buttonBmp_.setFont(Control::GlobalFont());
+		}
+		onDrawText(rect, style, draw);
 	}
 
 	return true;
@@ -1870,10 +1970,6 @@ void sdf::Button::onDraw() {
 
 	updateDrawXY();
 
-	//if (parent_->needDraw && !parent_->isTop) {
-	//	//作为子成员无需单独绘制
-	//	return;
-	//}
 
 	DrawBuffer* draw = getDraw();
 	bool drawSub = true;
@@ -1916,7 +2012,7 @@ void sdf::TextBox::Init() {
 
 	DWORD sty = WS_TABSTOP | WS_CHILD | WS_VISIBLE |
 		ES_LEFT | WS_BORDER;
-
+	//
 	if (mutiLine) {
 		sty |= ES_MULTILINE | WS_VSCROLL | ES_AUTOVSCROLL;
 	}
@@ -1955,7 +2051,7 @@ void sdf::TextBox::Init() {
 
 	Control::Init();
 
-	//gdi_.Init(handle_);
+	gdi_.Init(handle_);
 	//gdi_.SetPen(Pen::GetWhitePen());
 	//gdi_.SetBrush(BlueBrush_);
 	//gdi_.SetTextColor(Color::white);
@@ -1963,8 +2059,13 @@ void sdf::TextBox::Init() {
 	//gdi_.SetTextBackColor();
 	//背景透明
 	//gdi_.SetBrush(Brush::GetNullBrush());
-	setFont(Window::GlobalFont());
 
+	if (style.font.hasFont()) {
+		setFont(Font::getFont(style.font));
+	}
+	else {
+		setFont(Window::GlobalFont());
+	}
 	prevMsgProc_ = (WNDPROC)SetWindowLongPtr(handle_, GWLP_WNDPROC, (LONG_PTR)Control::ButtonProc);
 	initAllSub();
 }
@@ -2040,7 +2141,12 @@ void sdf::ListBox::Init() {
 		initList.reset();
 	}
 
-	setFont(Window::GlobalFont());
+	gdi_.Init(handle_);
+
+	if (style.font.hasFont())
+		setFont(Font::getFont(style.font));
+	else
+		setFont(Window::GlobalFont());
 
 	prevMsgProc_ = (WNDPROC)SetWindowLongPtr(handle_, GWLP_WNDPROC, (LONG_PTR)Control::ButtonProc);
 	initAllSub();
@@ -2114,7 +2220,7 @@ void sdf::ComBox::Init() {
 		}
 		initList.reset();
 	}
-	//gdi_.Init(handle_);
+	gdi_.Init(handle_);
 	//gdi_.SetPen(Pen::GetWhitePen());
 	//gdi_.SetBrush(BlueBrush_);
 	//gdi_.SetTextColor(Color::white);
@@ -2122,7 +2228,12 @@ void sdf::ComBox::Init() {
 	//gdi_.SetTextBackColor();
 	//背景透明
 	//gdi_.SetBrush(Brush::GetNullBrush());
-	setFont(Window::GlobalFont());
+
+	if (style.font.hasFont())
+		setFont(Font::getFont(style.font));
+	else
+		setFont(Window::GlobalFont());
+
 
 	prevMsgProc_ = (WNDPROC)SetWindowLongPtr(handle_, GWLP_WNDPROC, (LONG_PTR)Control::ButtonProc);
 	initAllSub();
@@ -2156,7 +2267,7 @@ bool sdf::ComBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& re
 
 
 
-void sdf::CheckBox::onDrawText(RECT& rect, DrawBuffer* draw) {
+void sdf::CheckBox::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw) {
 
 	if (!draw)
 		return;
@@ -2171,9 +2282,6 @@ void sdf::CheckBox::onDrawText(RECT& rect, DrawBuffer* draw) {
 	uint32_t* buf = (uint32_t*)draw->buttonBmpBuf_;
 
 	uint32_t borderColor = style.borderColor;
-	if (isCheck || isHover || isPress || isFocused) {
-		borderColor = styleHover.borderColor;
-	}
 
 	if (isDisable) {
 		if (dot) {
@@ -2275,6 +2383,7 @@ void sdf::CheckBox::onDrawText(RECT& rect, DrawBuffer* draw) {
 	}
 	rect.left = drawX + w;
 	rect.top = getDrawY();
+
 	draw->buttonBmp_.Txt(rect, text);
 }
 
@@ -2295,7 +2404,7 @@ bool sdf::CheckBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& 
 			else {
 				isCheck = !isCheck;
 			}
-
+			onDraw();
 			if (onClick_)
 				onClick_();
 			break;
