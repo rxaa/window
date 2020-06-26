@@ -44,7 +44,7 @@ namespace sdf {
 
 				auto dc = gdi_.GetDc() ? gdi_.GetDc() : Gdi::gobalGdi().GetDc();
 				RECT r1 = { 0, 0, showW, h };
-				DrawText(dc, text.c_str(), text.length(), &r1,
+				DrawText(dc, text.c_str(), (int)text.length(), &r1,
 					DT_CALCRECT | DT_WORDBREAK
 				);
 

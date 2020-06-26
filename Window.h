@@ -191,6 +191,10 @@ namespace sdf {
 
 
 		void AdjustLayout();
+		 
+		virtual void onDraw() override{
+
+		}
 
 		static int GetScreenWidth() {
 			return ::GetSystemMetrics(SM_CXSCREEN);

@@ -1639,6 +1639,10 @@ void sdf::Button::Init() {
 	if (!oldStyle) {
 		sty |= BS_OWNERDRAW;
 	}
+
+    if(!isEnable){
+        sty |= WS_DISABLED;
+    }
 	handle_ = CreateWindow(
 		tt_("BUTTON"),  // Predefined class; Unicode assumed
 		text.c_str(),      // Button text
@@ -2012,7 +2016,10 @@ void sdf::TextBox::Init() {
 
 	DWORD sty = WS_TABSTOP | WS_CHILD | WS_VISIBLE |
 		ES_LEFT | WS_BORDER;
-	//
+
+	if(!isEnable){
+        sty |= WS_DISABLED;
+	}
 	if (mutiLine) {
 		sty |= ES_MULTILINE | WS_VSCROLL | ES_AUTOVSCROLL;
 	}
@@ -2045,7 +2052,7 @@ void sdf::TextBox::Init() {
 		NULL);      // Pointer not needed.
 
 	if (!handle_) {
-		DF_ERR(tt_("CreateWindow Button failed!"));
+		DF_ERR(tt_("CreateWindow EDIT failed!"));
 		return;
 	}
 
@@ -2113,6 +2120,10 @@ void sdf::ListBox::Init() {
 	if (mutiSelect) {
 		sty |= LBS_MULTIPLESEL;
 	}
+
+    if(!isEnable){
+        sty |= WS_DISABLED;
+    }
 
 	handle_ = CreateWindow(
 		tt_("LISTBOX"),  // Predefined class; Unicode assumed
@@ -2193,6 +2204,10 @@ void sdf::ComBox::Init() {
 		sty |= CBS_DROPDOWN;
 	else
 		sty |= CBS_DROPDOWNLIST;
+
+    if(!isEnable){
+        sty |= WS_DISABLED;
+    }
 
 	handle_ = CreateWindow(
 		tt_("COMBOBOX"),  // Predefined class; Unicode assumed

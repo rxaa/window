@@ -33,7 +33,7 @@ namespace sdf
 			updateDrawXY();
 			DrawBuffer* draw = getDraw();
 			update();
-			if (pos.w > 0 && pos.h > 0)
+			if (pos.w > 0 && pos.h > 0 && !mutiLine)
 				gdi_.DrawTo(draw->buttonBmp_, drawX_, drawY_, pos.w, pos.h);
 
 		}

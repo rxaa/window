@@ -15,6 +15,8 @@ namespace sdf
 			pos.padding(5);
 			style.borderColor = Color::greyMid;
 			styleDisable.borderColor = Color::grey;
+			styleCheck.borderColor = Color::blue;
+			styleFocused.borderColor = Color::blue;
 			styleHover.borderColor = Color::blue;
 		}
 
@@ -23,7 +25,7 @@ namespace sdf
 		}
 		virtual void getContentWH(int32_t& w, int32_t& h) {
 			h = GlobalFont().GetFontSize() + 4;
-			w = Gdi::GetScreen().GetTextPixel(text).cx + h + 3;
+			w = Gdi::GetScreen().GetTextPixel(text).cx + h + 4;
 		}
 
 		virtual void onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw) override;
@@ -48,7 +50,7 @@ namespace sdf
 
 				CheckBox* check = dynamic_cast <CheckBox*>(cont.get());
 				if (check) {
-					if (check->isCheck) {
+                    if (check->isCheck) {
 						return checkI;
 					}
 					checkI++;

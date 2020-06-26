@@ -25,12 +25,14 @@ namespace sdf {
 		friend class ImageView;
 
 		friend class ScrollView;
+
 		friend class Window;
 
 		//最近一次创建的窗口,用于OnInit
 		static HWND currentHandle_;
 		static Window* parentWindow_;
 		static Window* currentWindow_;
+
 
 		void InitUserData() const {
 			::SetWindowLongPtr(handle_, GWLP_USERDATA, (LONG_PTR)this);
@@ -61,6 +63,7 @@ namespace sdf {
 		bool needDraw = true;
 		//是否顶层节点
 		bool isTop = false;
+		bool isEnable = true;
 	public:
 		std::function<void()> onCreate_;
 		std::function<void()> onBind_;
@@ -103,6 +106,7 @@ namespace sdf {
 			styleHover.font.size = size;
 			styleDisable.font.size = size;
 		}
+
 		void fontBold() {
 			if (style.font.size == 0) {
 				fontSize(Font::initSize);
@@ -114,7 +118,7 @@ namespace sdf {
 		}
 
 		template<class T>
-		inline std::shared_ptr<T>  castMember(size_t index) {
+		inline std::shared_ptr<T> castMember(size_t index) {
 			DF_ASSERT(index < memberList_.size());
 			return std::static_pointer_cast<T>(memberList_[index]);
 		}
@@ -197,13 +201,16 @@ namespace sdf {
 			int32_t dY = getDrawY();
 			int32_t w = GetWidth() + parent_->pos.paddingLeft + parent_->pos.paddingRight;
 			int32_t h = GetHeight() + parent_->pos.paddingTop + parent_->pos.paddingBottom;
-			if (dX + w < parent_->drawX_ || dX >  parent_->drawX_ + parent_->GetWidth() + parent_->pos.paddingLeft + parent_->pos.paddingRight ||
-				dY + h <  parent_->drawY_ || dY > parent_->drawY_ + parent_->GetHeight() + parent_->pos.paddingTop + parent_->pos.paddingBottom
+			if (dX + w < parent_->drawX_ ||
+				dX > parent_->drawX_ + parent_->GetWidth() + parent_->pos.paddingLeft + parent_->pos.paddingRight ||
+				dY + h < parent_->drawY_ ||
+				dY > parent_->drawY_ + parent_->GetHeight() + parent_->pos.paddingTop + parent_->pos.paddingBottom
 				) {
 				return true;
 			}
 			return false;
 		}
+
 		int32_t getDrawY() {
 			return parent_->drawY_ - parent_->getVertPos() + pos.y;
 		}
@@ -257,11 +264,18 @@ namespace sdf {
 		virtual void bindUpdate(bool draw = true) {
 			if (onBind_) {
 				onBind_();
+				for (auto& sub : memberList_) {
+					sub->bindUpdate(draw);
+				}
+
+				if (draw)
+					onDraw();
 			}
-			for (auto& sub : memberList_) {
-				sub->bindUpdate(false);
+			else {
+				for (auto& sub : memberList_) {
+					sub->bindUpdate(draw);
+				}
 			}
-			onDraw();
 		}
 
 
@@ -272,9 +286,9 @@ namespace sdf {
 			h = 0;
 		}
 
-		
+
 		virtual void reGetContentWH(int32_t& w, int32_t& h) {
-			
+
 		}
 
 		virtual void onMeasure();
@@ -297,9 +311,10 @@ namespace sdf {
 		}
 
 		///是否启用控件
-		inline void enable(BOOL bo) const {
-			DF_ASSERT(handle_ != NULL);
-			::EnableWindow(handle_, bo);
+		inline void enable(bool bo) {
+			isEnable = bo;
+			if (handle_)
+				::EnableWindow(handle_, bo);
 		}
 
 		inline int32_t GetWidth() const {
@@ -326,7 +341,8 @@ namespace sdf {
 			//SetWindowPos很慢
 			if (handle_)
 				return ::SetWindowPos(handle_, 0, x, y, 0, 0,
-					SWP_NOSIZE | SWP_NOZORDER | SWP_DEFERERASE | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOREDRAW);
+					SWP_NOSIZE | SWP_NOZORDER | SWP_DEFERERASE | SWP_NOOWNERZORDER | SWP_NOACTIVATE |
+					SWP_NOCOPYBITS | SWP_NOREDRAW);
 			return false;
 		}
 
@@ -506,6 +522,7 @@ namespace sdf {
 	protected:
 
 		void _removeFromParent(bool remove);
+
 		WNDPROC prevMsgProc_ = 0;
 		int32_t measureX_ = 0;
 		int32_t measureY_ = 0;
