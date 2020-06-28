@@ -5,13 +5,13 @@ namespace sdf {
 		: public Control {
 	protected:
 		intptr_t showI = 0;
+		uint32_t timerId = 0;
 	public:
 		Gdi gdi_;
 		std::vector<std::shared_ptr<Bitmap>> imageList_;
 		//间隔时间,毫秒
 		uint32_t interval = 50;
 		bool loop = true;
-		uint32_t timerId = 0;
 		ImageView() {
 
 		}
@@ -69,8 +69,9 @@ namespace sdf {
 		///初始化
 		virtual void Init();
 
+		virtual void onTimer(uint32_t) override;
 
-		virtual bool ControlProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& ret) override;
+		//virtual bool ControlProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& ret) override;
 
 	};
 

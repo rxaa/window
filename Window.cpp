@@ -157,8 +157,8 @@ void sdf::Control::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw)
 			rect.right -= pos.paddingRight;
 			rect.bottom -= pos.paddingBottom;
 		}
-	
-	
+
+
 
 		if (pos.textMutiline)
 			draw->buttonBmp_.TxtMutiLine(rect, text);
@@ -339,12 +339,12 @@ void sdf::Control::doCreate() {
 		if (onBind_)
 			onBind_();
 		onCreate_ = nullptr;
-		if (pos.w < 0 && pos.flexX < 1)
-			pos.wrapX = true;
-
-		if (pos.h < 0 && pos.flexY < 1)
-			pos.wrapY = true;
 	}
+	if (pos.w < 0 && pos.flexX < 1)
+		pos.wrapX = true;
+
+	if (pos.h < 0 && pos.flexY < 1)
+		pos.wrapY = true;
 	for (auto& con : memberList_) {
 		con->doCreate();
 	}
@@ -454,6 +454,10 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 		}
 		return 0;
 	}
+	case WM_TIMER:
+		if (cont)
+			cont->onTimer((uint32_t)wParam);
+		break;
 	case WM_CTLCOLORBTN: {
 		//绘制控件背景,(自绘控件仍触发)
 		//Control* controlP = GetUserData((HWND)lParam);
@@ -667,9 +671,7 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 			break;
 		}
 
-		case WM_TIMER:
-			winP->onTimer((UINT)wParam);
-			break;
+
 		case WM_PAINT: {
 			for (auto& sub : winP->memberList_) {
 				sub->onDraw();
@@ -1612,18 +1614,124 @@ void sdf::ImageView::Init() {
 	}
 }
 
-bool sdf::ImageView::ControlProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& ret) {
-	switch (message) {
-	case WM_TIMER: {
-		showI += 1;
-		if (showI >= (intptr_t)imageList_.size())
-			showI = 0;
-		onDraw();
-		break;
-	}
-	}
-	return true;
+void sdf::ImageView::onTimer(uint32_t)
+{
+	showI += 1;
+	if (showI >= (intptr_t)imageList_.size())
+		showI = 0;
+	onDraw();
 }
+
+
+////////////////////////////////Button//////////////////////////////////////////
+
+void sdf::LoadAnim::onDraw()
+{
+	auto draw = getDraw();
+
+	updateDrawXY();
+
+	drawStyle(draw, style, true);
+
+
+	if (showAnim) {
+		int32_t penSize = (int32_t)(GetWidth() / 15);
+		if (penSize < 1)
+			penSize = 1;
+		int32_t drawX = getDrawX() + pos.paddingLeft + penSize;
+		int32_t drawY = getDrawY() + pos.paddingTop + penSize;
+		int32_t w = GetWidth() - penSize * 2;
+
+		Gdiplus::Pen greenPen(Gdiplus::Color(Color::greenColor_), (float)penSize);
+		draw->graph_->DrawArc(&greenPen, drawX, drawY, w - pos.paddingLeft - pos.paddingRight, w - pos.paddingTop - pos.paddingBottom, startAngle, arcLen);
+
+		Gdiplus::Pen bluePen(Gdiplus::Color(Color::blue), (float)penSize);
+		draw->graph_->DrawArc(&bluePen, drawX, drawY, w - pos.paddingLeft - pos.paddingRight, w - pos.paddingTop - pos.paddingBottom, (float)(startAngle + 180), arcLen);
+
+	}
+
+	if (dotSize > 0 && dotColor && showDot) {
+		Gdiplus::SolidBrush brush(Gdiplus::Color((Gdiplus::ARGB)dotColor));
+		Gdiplus::RectF ellipseRect2((float)drawX_ + (GetWidth() - dotSize) / 2, (float)drawY_ + (GetHeight() - dotSize) / 2, dotSize, dotSize);
+		draw->graph_->FillEllipse(&brush, ellipseRect2);
+	}
+	drawMember(gdi_, draw);
+}
+
+void sdf::LoadAnim::doCreate()
+{
+	Control::doCreate();
+	dotSize = dotSize * Window::getScale();
+}
+
+void sdf::LoadAnim::Init() {
+
+
+	onMeasure();
+	handle_ = CreateWindow(
+		tt_("STATIC"),  // Predefined class; Unicode assumed
+		text.c_str(),      // Button text
+		WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_CLIPCHILDREN,  // Styles  |BS_OWNERDRAW
+		pos.x,         // x position
+		pos.y,         // y position
+		pos.w,        // Button width
+		pos.h,        // Button height
+		getParentHandle(),     // Parent window
+		NULL,       // No menu.
+		Control::progInstance_,
+		NULL);      // Pointer not needed.
+
+	if (!handle_) {
+		DF_ERR(tt_("CreateWindow Button failed!"));
+		return;
+	}
+
+	Control::Init();
+
+	gdi_.Init(handle_);
+	//buttonGdi_.SetPen(Pen::GetWhitePen());
+	//buttonGdi_.SetBrush(BlueBrush_);
+	//buttonGdi_.SetTextColor(Color::white);
+	//文字背景透明
+	gdi_.SetTextBackColor();
+	//背景透明
+	//gdi_.SetBrush(Brush::GetNullBrush());
+	//使用全局字体
+	if (style.font.hasFont())
+		gdi_.setFont(Font::getFont(style.font));
+	else
+		gdi_.setFont(Window::GlobalFont());
+
+	prevMsgProc_ = (WNDPROC)SetWindowLongPtr(handle_, GWLP_WNDPROC, (LONG_PTR)Control::ButtonProc);
+	initAllSub();
+	timerId = generateId();
+
+	if (showAnim)
+		setTimer(timerId, 15);
+}
+
+void sdf::LoadAnim::onTimer(uint32_t)
+{
+
+	startAngle += 3 + ((uint16_t)arcInc >> 15) * 3;
+
+	if (startAngle > 360) {
+		startAngle = 0;
+	}
+
+	arcLen += arcInc;
+	if (arcLen > 180) {
+		arcInc *= -1;
+	}
+
+	if (arcLen < 6) {
+		arcInc *= -1;
+		arcLen = 6;
+	}
+
+	onDraw();
+}
+
 
 ////////////////////////////////Button//////////////////////////////////////////
 
@@ -1640,9 +1748,9 @@ void sdf::Button::Init() {
 		sty |= BS_OWNERDRAW;
 	}
 
-    if(!isEnable){
-        sty |= WS_DISABLED;
-    }
+	if (!isEnable) {
+		sty |= WS_DISABLED;
+	}
 	handle_ = CreateWindow(
 		tt_("BUTTON"),  // Predefined class; Unicode assumed
 		text.c_str(),      // Button text
@@ -2017,8 +2125,8 @@ void sdf::TextBox::Init() {
 	DWORD sty = WS_TABSTOP | WS_CHILD | WS_VISIBLE |
 		ES_LEFT | WS_BORDER;
 
-	if(!isEnable){
-        sty |= WS_DISABLED;
+	if (!isEnable) {
+		sty |= WS_DISABLED;
 	}
 	if (mutiLine) {
 		sty |= ES_MULTILINE | WS_VSCROLL | ES_AUTOVSCROLL;
@@ -2121,9 +2229,9 @@ void sdf::ListBox::Init() {
 		sty |= LBS_MULTIPLESEL;
 	}
 
-    if(!isEnable){
-        sty |= WS_DISABLED;
-    }
+	if (!isEnable) {
+		sty |= WS_DISABLED;
+	}
 
 	handle_ = CreateWindow(
 		tt_("LISTBOX"),  // Predefined class; Unicode assumed
@@ -2205,9 +2313,9 @@ void sdf::ComBox::Init() {
 	else
 		sty |= CBS_DROPDOWNLIST;
 
-    if(!isEnable){
-        sty |= WS_DISABLED;
-    }
+	if (!isEnable) {
+		sty |= WS_DISABLED;
+	}
 
 	handle_ = CreateWindow(
 		tt_("COMBOBOX"),  // Predefined class; Unicode assumed

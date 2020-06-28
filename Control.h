@@ -293,6 +293,7 @@ namespace sdf {
 
 		virtual void onMeasure();
 
+		virtual void onTimer(uint32_t) {}
 
 		//*******************************************
 		// Summary : 获取在父窗口中的位置与大小
@@ -461,6 +462,7 @@ namespace sdf {
 			::SendMessage(handle_, EM_SETLIMITTEXT, nMax, 0);
 		}
 
+		
 
 		void setFont(const Font& font) {
 			::SendMessage(handle_, WM_SETFONT, (WPARAM)font.GetFont(), TRUE);
@@ -518,6 +520,10 @@ namespace sdf {
 		}
 
 		virtual void doCreate();
+
+		uint32_t generateId() {
+			return (uint32_t)(std::rand() % (INT_MAX - 1)) + 1;
+		}
 
 	protected:
 
@@ -619,6 +625,7 @@ namespace sdf {
 #include "View.h"
 #include "Button.h"
 #include "ImageView.h"
+#include "LoadAnim.h"
 #include "ScrollView.h"
 #include "TextBox.h"
 #include "ListBox.h"

@@ -219,9 +219,6 @@ namespace sdf {
 		virtual void onPaint();
 
 	
-
-		virtual void onTimer(UINT) {}
-
 		virtual void onCreate() {}
 
 		virtual void onResize() {
