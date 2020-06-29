@@ -1694,9 +1694,8 @@ void sdf::LoadAnim::Init() {
 	//buttonGdi_.SetTextColor(Color::white);
 	//文字背景透明
 	gdi_.SetTextBackColor();
-	//背景透明
-	//gdi_.SetBrush(Brush::GetNullBrush());
-	//使用全局字体
+
+
 	if (style.font.hasFont())
 		gdi_.setFont(Font::getFont(style.font));
 	else
