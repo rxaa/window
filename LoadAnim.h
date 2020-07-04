@@ -20,17 +20,19 @@ namespace sdf {
 
 		}
 
+		void enableAnim(bool anim){
+            showAnim = anim;
+            if (showAnim) {
+                setTimer(timerId, animInterval_);
+            }
+            else {
+                killTimer(timerId);
+            }
+		}
+
 		void showContent(bool anim, bool dot) {
 			showDot = dot;
-			showAnim = anim;
-			if (showAnim) {
-				setTimer(timerId, 15);
-			}
-			else {
-				killTimer(timerId);
-			}
-
-			onDraw();
+			enableAnim(anim);
 		}
 		 
 

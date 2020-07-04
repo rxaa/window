@@ -1,7 +1,12 @@
-﻿#include "StdAfx.h"
-
+﻿#include <concurrentqueue.h>
+#include "StdAfx.h"
 #include "Control.h"
 #include "Font.h"
+
+moodycamel::ConcurrentQueue<std::function<void()>> taskQueue_;
+
+std::unordered_map<int32_t, std::shared_ptr<sdf::Bitmap>>* sdf::Bitmap::bmpBuffer = new  std::unordered_map<int32_t, std::shared_ptr<sdf::Bitmap>>();
+
 
 std::unordered_map<FontType, sdf::Font> sdf::Font::cache_;
 HWND sdf::Control::currentHandle_ = NULL;
@@ -11,6 +16,7 @@ HINSTANCE sdf::Control::progInstance_ = nullptr;
 
 sdf::Window* sdf::Control::currentWindow_ = nullptr;
 
+std::vector<sdf::Control*> sdf::Control::controlOpenList_;
 
 sdf::Control* sdf::Control::mouseHandle_ = 0;
 
@@ -340,6 +346,10 @@ void sdf::Control::doCreate() {
 			onBind_();
 		onCreate_ = nullptr;
 	}
+	else {
+		if (onBind_)
+			onBind_();
+	}
 	if (pos.w < 0 && pos.flexX < 1)
 		pos.wrapX = true;
 
@@ -443,6 +453,15 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 	//COUT((int*)message);
 	sdf::Control* cont = sdf::Window::GetUserData(hDlg);
 	switch (message) {
+	case Window::taskMessage_: {
+		std::function<void()> ff;
+		while (taskQueue_.try_dequeue(ff)) {
+			try {
+				ff();
+			}DF_CATCH_ALL;
+		}
+		break;
+	}
 	case WM_CTLCOLOREDIT: {
 		//文本样式
 		HDC hdc = (HDC)wParam;
@@ -602,7 +621,7 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 			return DefWindowProc(hDlg, message, wParam, lParam);
 		}
 
-		//currentHandle_ = hDlg;
+		currentHandle_ = hDlg;
 		currentWindow_ = winP;
 
 		switch (message) {
@@ -868,8 +887,7 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 	::UpdateWindow(handle_);
 	currentHandle_ = oldHandle;
 	//currentWindow_=oldWindow;
-
-
+	Control::controlOpenList_.push_back(this);
 }
 
 void sdf::Window::onInit() {
@@ -903,6 +921,8 @@ void sdf::Window::MessageLoop() {
 }
 
 void sdf::Window::closeRelease() {
+	Control::removeOpenControl(this);
+	
 	ON_SCOPE_EXIT({
 					  ptr_.reset();
 		});
@@ -937,6 +957,12 @@ float sdf::Window::getScale() {
 		return res;
 	}
 
+}
+
+void sdf::Window::runOnUi(std::function<void()>&& func)
+{
+	taskQueue_.enqueue(func);
+	::PostMessage(currentHandle_, taskMessage_, 0, 0);
 }
 
 
@@ -1102,9 +1128,6 @@ void sdf::Window::InitWinData() {
 	UpdateBorderSize();
 	auto oldWin = parentWindow_;
 	parentWindow_ = this;
-	try {
-		onInit();
-	} DF_CATCH_ALL;
 
 	parentWindow_ = oldWin;
 
@@ -1114,6 +1137,10 @@ void sdf::Window::InitWinData() {
 
 	initAllSub();
 	//AdjustLayout();
+
+	try {
+		onInit();
+	} DF_CATCH_ALL;
 }
 
 
@@ -1178,7 +1205,7 @@ void sdf::View::onDraw() {
 		updateDrawXY();
 
 		//COUT(tt_("重绘view"));
-		if (drawStyle(draw, style)) {
+		if (drawStyle(draw, style, parent_->needDraw)) {
 
 			drawMember(gdi_, draw);
 		}
@@ -1198,31 +1225,36 @@ void sdf::ScrollView::onMeasure() {
 	measureY_ = 0;
 	contentW = pos.paddingLeft + pos.paddingRight;
 	contentH = pos.paddingTop + pos.paddingBottom;
+	bool flexX = false, flexY = false;
 	for (auto& sub : memberList_) {
 		sub->onMeasure();
 		if (pos.vector) {
 			contentH += sub->showH_ + sub->pos.marginTop + sub->pos.marginBottom;
-			if (sub->showW_ > contentW)
+			if (sub->showW_ > contentW) {
 				contentW = sub->showW_;
+				flexX = sub->pos.flexX > 0;
+			}
 		}
 		else {
 			contentW += sub->showW_ + sub->pos.marginLeft + sub->pos.marginRight;
-			if (sub->showH_ > contentH)
+			if (sub->showH_ > contentH) {
 				contentH = sub->showH_;
+				flexY = sub->pos.flexY > 0;
+			}
 		}
 
 
 	}
 	int w = pos.w, h = pos.h;
 
-	if (contentW > pos.w) {
+	if (!flexX && contentW > pos.w + 1) {
 		pos.h = h - getScrollWidth();
 	}
-	if (contentH > pos.h) {
+	if (!flexY && contentH > pos.h + 1) {
 		pos.w = w - getScrollWidth();
 	}
 
-	if (contentW > pos.w) {
+	if (!flexX && contentW > pos.w + 1) {
 		pos.h = h - getScrollWidth();
 		//horiPos = 0;
 		horiPage = pos.w / fontSize;
@@ -1243,7 +1275,7 @@ void sdf::ScrollView::onMeasure() {
 		horiMax = 0;
 	}
 
-	if (contentH > pos.h) {
+	if (!flexY && contentH > pos.h + 1) {
 		pos.w = w - getScrollWidth();
 		//vertPos = 0;
 		vertPage = pos.h / fontSize;
@@ -1278,24 +1310,24 @@ void sdf::ScrollView::onDraw() {
 
 	updateDrawXY();
 
-	COUT(tt_("scroll onDraw"));
+	//COUT(tt_("scroll onDraw"));
 
 	DrawBuffer* draw = getDraw();
 
 	bool drawSub = true;
 
 	if (isPress) {
-		drawSub = drawStyle(draw, stylePress, true);
+		drawSub = drawStyle(draw, stylePress, parent_->needDraw);
 		return;
 	}
 	if (isDisable) {
-		drawSub = drawStyle(draw, styleDisable, true);
+		drawSub = drawStyle(draw, styleDisable, parent_->needDraw);
 	}
 	else if (isHover) {
-		drawSub = drawStyle(draw, styleHover, true);
+		drawSub = drawStyle(draw, styleHover, parent_->needDraw);
 	}
 	else {
-		drawSub = drawStyle(draw, style, true);
+		drawSub = drawStyle(draw, style, parent_->needDraw);
 	}
 
 	if (drawSub) {
@@ -1313,7 +1345,6 @@ void sdf::ScrollView::onDraw() {
 			sub->onDraw();
 		}
 		//	}, 1);
-
 
 
 		needDraw = true;
@@ -1550,12 +1581,13 @@ void sdf::ImageView::onDraw() {
 
 		DrawBuffer* draw = getDraw();
 
-		if (Control::drawStyle(draw, style, true) && draw) {
 
-			int w = GetWidth();
-			int h = GetHeight();
+		if (Control::drawStyle(draw, style, parent_->needDraw) && draw) {
 
-			Gdiplus::Rect dest(drawX_, drawY_, w, h);
+			int w = GetWidth() - pos.paddingLeft - pos.paddingRight;
+			int h = GetHeight() - pos.paddingTop - pos.paddingBottom;
+
+			Gdiplus::Rect dest(drawX_ + pos.paddingLeft, drawY_ + pos.paddingTop, w, h);
 			if (showI >= 0 && showI < (intptr_t)imageList_.size()) {
 				draw->graph_->DrawImage(imageList_[showI]->getImg(), dest);
 			}
@@ -1631,7 +1663,7 @@ void sdf::LoadAnim::onDraw()
 
 	updateDrawXY();
 
-	drawStyle(draw, style, true);
+	drawStyle(draw, style, parent_->needDraw);
 
 
 	if (showAnim) {
@@ -1665,7 +1697,6 @@ void sdf::LoadAnim::doCreate()
 }
 
 void sdf::LoadAnim::Init() {
-
 
 	onMeasure();
 	handle_ = CreateWindow(
@@ -1706,7 +1737,7 @@ void sdf::LoadAnim::Init() {
 	timerId = generateId();
 
 	if (showAnim)
-		setTimer(timerId, 15);
+		setTimer(timerId, animInterval_);
 }
 
 void sdf::LoadAnim::onTimer(uint32_t)
@@ -1787,7 +1818,7 @@ void sdf::Button::Init() {
 	initAllSub();
 }
 
-bool sdf::Button::ControlProc(HWND, UINT msg, WPARAM, LPARAM lParam, LRESULT& ret) {
+bool sdf::Button::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT& ret) {
 
 	switch (msg) {
 	case WM_SETCURSOR: {
@@ -1800,9 +1831,15 @@ bool sdf::Button::ControlProc(HWND, UINT msg, WPARAM, LPARAM lParam, LRESULT& re
 		break;
 	}
 	case WM_COMMAND: {
+		auto code = HIWORD(wParam);
 
-		if (onClick_)
-			onClick_();
+		if (code == BN_CLICKED) {
+			if (onClick_)
+				onClick_();
+		}
+		else if (code == BN_DBLCLK) {
+
+		}
 		break;
 	}
 	}
@@ -1825,9 +1862,20 @@ void sdf::DrawBuffer::newBmp(int32_t w, int32_t h) {
 	graph_ = Gdiplus::Graphics::FromHDC(buttonBmp_.GetDc());
 	graph_->SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
 	//双线性插值
-	graph_->SetInterpolationMode(Gdiplus::InterpolationModeBilinear);
+	graph_->SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBilinear);
 }
 
+
+void sdf::Control::removeOpenControl(Control* cont)
+{
+	for (intptr_t i = controlOpenList_.size() - 1; i >= 0; i--) {
+		auto con = controlOpenList_[i];
+		if (con == cont) {
+			controlOpenList_.erase(controlOpenList_.begin() + i);
+			break;
+		}
+	}
+}
 
 bool sdf::Control::drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentBack) {
 	if (!draw)
@@ -1865,97 +1913,87 @@ bool sdf::Control::drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentB
 	int bufW = draw->buttonBmp_.GetWidth();
 
 
-	//画阴影
-	int shadowLen = std::abs(style.shadowSize);
-
-	if (shadowLen > 0 && shadowLen < 1023) {
-		DWORD col[1024] = { 0 };//渐变
-
-		for (int i = 1; i <= shadowLen; i++) {
-			col[i - 1] = Color::mixColor(style.backColor, 7 * i);
-		}
-
-		//横向阴影
-		for (int y = drawY; y < drawY + shadowLen; y++) {
-			for (int i = y - drawY + drawX; i < rect.right; i++) {
-				//buf[y * bufW + i] = Color::black;
-				if (y * bufW + i > 0)
-					buf[y * bufW + i] = col[shadowLen - 1 - (y - drawY)];
-			}
-		}
-		//纵向
-		for (int y = drawX; y < drawX + shadowLen; y++) {
-			for (int i = y - drawX + drawY; i < rect.bottom; i++) {
-				//buf[y + i * bufW] = Color::black;
-				if (y + i * bufW > 0)
-					buf[y + i * bufW] = col[shadowLen - 1 - (y - drawX)];
-			}
-		}
-		rect.top += 2;
-		rect.left += 2;
-	}
-
 	if (isFocused) {
 		//but.buttonGdi_.SetPen(WhiteDotPen_);
 		//but.buttonGdi_.SetBrush(Brush::GetNullBrush());
 		//but.buttonGdi_.Rect(but.buttonRect_.left + 3, but.buttonRect_.top + 3, but.buttonRect_.right - 3, but.buttonRect_.bottom - 3);
 	}
 
-
 	if (style.backColor != 0) {
-		//画矩形
-		for (int i = shadowLen + drawY; i < rect.bottom - style.borderBottom; i++) {
-			for (int y = shadowLen + drawX; y < rect.right - style.borderRight; y++) {
-				if (i * bufW + y >= 0)
-					buf[i * bufW + y] = style.backColor;
-			}
+
+		if (style.radius == 360) {
+
+			if (parent_->needDraw)
+				drawParentBack(draw);
+			Gdiplus::SolidBrush brush(Gdiplus::Color((Gdiplus::ARGB)style.backColor));
+			Gdiplus::Rect ellipseRect2(drawX_, drawY_, w, h);
+
+			draw->graph_->FillEllipse(&brush, ellipseRect2);
 		}
+		else {
+			//矩形背景
+			//df::TickClock([&] {
+			drawRect((uint32_t*)buf, bufW, drawX, drawY, w, h, style.backColor);
+			//}, 1);
+
+		}
+
 	}
 	else if (!style.backImage && parentBack) {
-		uint32_t color = 0;
-		Control* par = parent_;
-		while (par != nullptr && color == 0) {
-			if (par->lastDrawStyle)
-				color = par->lastDrawStyle->backColor;
-			par = par->parent_;
+		drawParentBack(draw);
+	}
+
+	//画阴影
+	int shadowLen = std::abs(style.shadowSize);
+
+	if (shadowLen > 0 && shadowLen < 1023) {
+		uint32_t col[1024] = { 0 };//渐变
+
+		for (int i = 1; i <= shadowLen; i++) {
+			col[i - 1] = Color::mixColor(style.backColor, 7 * i);
 		}
-		for (int i = shadowLen + drawY; i < rect.bottom - style.borderBottom; i++) {
-			for (int y = shadowLen + drawX; y < rect.right - style.borderRight; y++) {
-				if (i * bufW + y >= 0)
-					buf[i * bufW + y] = color;
+
+		//横向阴影
+		for (int32_t y = df::positive(drawY); y < drawY + shadowLen; y++) {
+			for (int32_t i = df::positive(y - drawY + drawX); i < rect.right; i++) {
+				buf[y * bufW + i] = col[shadowLen - 1 - (y - drawY)];
 			}
 		}
+		//纵向
+		for (int32_t y = df::positive(drawX); y < drawX + shadowLen; y++) {
+			for (int32_t i = df::positive(y - drawX + drawY); i < rect.bottom; i++) {
+				buf[y + i * bufW] = col[shadowLen - 1 - (y - drawX)];
+			}
+		}
+		rect.top += 2;
+		rect.left += 2;
 	}
 
 	if (style.borderTop > 0) {
-		for (int y = drawY; y < drawY + style.borderTop; y++) {
-			for (int i = drawX; i < drawX + w; i++) {
-				if (y * bufW + i >= 0)
-					buf[y * bufW + i] = style.borderColor;
+		for (int y = df::positive(drawY); y < drawY + style.borderTop; y++) {
+			for (int i = df::positive(drawX); i < drawX + w; i++) {
+				buf[y * bufW + i] = style.borderColor;
 			}
 		}
 	}
 	if (style.borderBottom > 0 && h > 0) {
-		for (int y = drawY + h - style.borderBottom; y < drawY + h; y++) {
-			for (int i = drawX; i < drawX + w; i++) {
-				if (y * bufW + i >= 0)
-					buf[y * bufW + i] = style.borderColor;
+		for (int y = df::positive(drawY + h - style.borderBottom); y < drawY + h; y++) {
+			for (int i = df::positive(drawX); i < drawX + w; i++) {
+				buf[y * bufW + i] = style.borderColor;
 			}
 		}
 	}
 	if (style.borderLeft > 0) {
-		for (int y = drawX; y < drawX + style.borderLeft; y++) {
-			for (int i = drawY; i < drawY + h; i++) {
-				if (y + i * bufW >= 0)
-					buf[y + i * bufW] = style.borderColor;
+		for (int y = df::positive(drawX); y < drawX + style.borderLeft; y++) {
+			for (int i = df::positive(drawY); i < drawY + h; i++) {
+				buf[y + i * bufW] = style.borderColor;
 			}
 		}
 	}
 	if (style.borderRight > 0 && w > 0) {
-		for (int y = drawX + w - style.borderRight; y < drawX + w; y++) {
-			for (int i = drawY; i < drawY + h; i++) {
-				if (y + i * bufW >= 0)
-					buf[y + i * bufW] = style.borderColor;
+		for (int y = df::positive(drawX + w - style.borderRight); y < drawX + w; y++) {
+			for (int i = df::positive(drawY); i < drawY + h; i++) {
+				buf[y + i * bufW] = style.borderColor;
 			}
 		}
 	}
@@ -2032,6 +2070,15 @@ void sdf::Control::removeFromParent() {
 
 }
 
+void sdf::Control::drawRect(uint32_t* buf, int32_t bufW, int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color)
+{
+	for (int32_t yy = df::positive(y); yy < y + h; yy++) {
+		for (int32_t xx = df::positive(x); xx < x + w; xx++) {
+			buf[yy * bufW + xx] = color;
+		}
+	}
+}
+
 void sdf::Control::_removeFromParent(bool remove) {
 	auto par = parent_;
 	if (par) {
@@ -2087,19 +2134,19 @@ void sdf::Button::onDraw() {
 
 	//df::TickClock([&] {
 	if (isPress) {
-		drawSub = drawStyle(draw, stylePress, true);
+		drawSub = drawStyle(draw, stylePress, parent_->needDraw);
 	}
 	else if (isDisable) {
-		drawSub = drawStyle(draw, styleDisable, true);
+		drawSub = drawStyle(draw, styleDisable, parent_->needDraw);
 	}
 	else if (isHover) {
-		drawSub = drawStyle(draw, styleHover, true);
+		drawSub = drawStyle(draw, styleHover, parent_->needDraw);
 	}
 	else if (isCheck) {
-		drawSub = drawStyle(draw, styleCheck, true);
+		drawSub = drawStyle(draw, styleCheck, parent_->needDraw);
 	}
 	else {
-		drawSub = drawStyle(draw, style, true);
+		drawSub = drawStyle(draw, style, parent_->needDraw);
 	}
 	//}, 10);
 
@@ -2288,9 +2335,9 @@ bool sdf::ListBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& r
 
 
 void sdf::ListBox::SetHorizontal(const df::CC& str) {
-	SIZE wid;
+	SIZE wid = { 0 };
 	GetTextExtentPoint32(currentWindow_->gdi_.GetDc(), str.char_, (int)str.length_, &wid);
-	COUT(wid.cx);
+	//COUT(wid.cx);
 	SendMessage(handle_, LB_SETHORIZONTALEXTENT, (WPARAM)(wid.cx + 5), 0);
 	textLength_ = (int)str.length_;
 }
@@ -2298,7 +2345,6 @@ void sdf::ListBox::SetHorizontal(const df::CC& str) {
 
 
 ///////////////////////////////////ComBox///////////////////////////////////////
-
 
 
 void sdf::ComBox::Init() {
@@ -2414,10 +2460,9 @@ void sdf::CheckBox::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw
 		}
 		else {
 			//横
-			for (int y = drawY; y < drawY + size; y++) {
-				for (int i = drawX + size; i < drawX + w - size; i++) {
-					if (y * bufW + i >= 0)
-						buf[y * bufW + i] = styleDisable.borderColor;
+			for (int y = df::positive(drawY); y < drawY + size; y++) {
+				for (int i = df::positive(drawX + size); i < drawX + w - size; i++) {
+					buf[y * bufW + i] = styleDisable.borderColor;
 					if ((y + w - size) * bufW + i >= 0)
 						buf[(y + w - size) * bufW + i] = styleDisable.borderColor;
 				}
@@ -2449,20 +2494,18 @@ void sdf::CheckBox::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw
 		else {
 
 			//横
-			for (int y = drawY; y < drawY + size; y++) {
-				for (int i = drawX + size; i < drawX + w - size; i++) {
-					if (y * bufW + i >= 0)
-						buf[y * bufW + i] = borderColor;
+			for (int y = df::positive(drawY); y < drawY + size; y++) {
+				for (int i = df::positive(drawX + size); i < drawX + w - size; i++) {
+					buf[y * bufW + i] = borderColor;
 					if ((y + w - size) * bufW + i >= 0)
 						buf[(y + w - size) * bufW + i] = borderColor;
 				}
 			}
 
 			//中间
-			for (int y = drawY + size; y < drawY + w - size; y++) {
-				for (int i = drawX; i < drawX + w; i++) {
-					if (y * bufW + i >= 0)
-						buf[y * bufW + i] = borderColor;
+			for (int y = df::positive(drawY + size); y < drawY + w - size; y++) {
+				for (int i = df::positive(drawX); i < drawX + w; i++) {
+					buf[y * bufW + i] = borderColor;
 				}
 			}
 

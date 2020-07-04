@@ -28,20 +28,26 @@ namespace sdf {
 			//浅蓝
 			blueLight = 0xFFd0edfe,
 			blueLight2 = 0xFFeef9ff,
+
+			orange = 0xFFff9b30,
+
 			yellow = 0xFFf3dd60,
 			yellowLight = 0xFFfff8d1,
-			//蓝色
+
+			//蓝
 			blue = 0xFF4192E1,
-			//深蓝
 			barkBlue = 0xff0000FF,
-			//白色
+
+			green = 0xFF1ABC6E,
+			greenLight = 0xFFe9fff4,
+
+
 			white = 0xFFFFFFFF
 		};
 
 		//颜色(ARGB)
 		//内存:(BGRA)
 		static const uint32_t blueColor_ = 0xFF4192E1;
-		static const uint32_t orangeColor_ = 0xFFE19241;
 		static const uint32_t greenColor_ = 0xFF1ABC6E;
 		static const uint32_t redColor_ = 0xFFFF2F2F;
 

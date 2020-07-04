@@ -79,8 +79,8 @@ namespace sdf
 
 #define ui_list_view(Ty) ui_control(sdf::ListView<Ty>) 
 
-#define ui_list_bind(Ty)  v.onCreateView = [&](auto& dat, size_t index) {\
-	auto con = std::make_shared<Ty>();\
+#define ui_list_bind(Ty,...)  v.onCreateView = [&](auto& dat, size_t index) {\
+	auto con = std::make_shared<Ty>(__VA_ARGS__);\
 	con->dat = &dat;\
 	con->index = index;\
 	return con;\

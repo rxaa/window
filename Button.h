@@ -13,6 +13,7 @@ namespace sdf
 		std::function<void()> onClick_;
 		Button& v{ *this };
 
+
 		bool oldStyle = false;
 		bool isCheck = false;
 		ControlStyle styleCheck;
@@ -124,7 +125,6 @@ namespace sdf
 			if (w > 0)
 				h = GlobalFont().GetFontSize();
 		}
-
 
 
 		virtual void onDraw();

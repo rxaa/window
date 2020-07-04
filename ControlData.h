@@ -56,13 +56,15 @@ namespace sdf {
     public:
         uint32_t color = 0;
         uint32_t backColor = 0;
-        int shadowSize = 0;
+        int32_t shadowSize = 0;
 
         uint16_t borderLeft = 0;
         uint16_t borderTop = 0;
         uint16_t borderRight = 0;
         uint16_t borderBottom = 0;
+        int16_t radius = 0;
         uint32_t borderColor = 0;
+      
         std::shared_ptr<Bitmap> backImage;
         BitmapScaleType scaleType = BitmapScaleType::center;
         FontType font;

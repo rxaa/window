@@ -4,12 +4,11 @@ namespace sdf {
 	class Window;
 
 	typedef std::shared_ptr<Window> WinPtr;
-
+	
 	class Window : public Control {
 		DF_DISABLE_COPY_ASSIGN(Window);
 	protected:
 
-		static Bitmap backGround_;
 
 		Brush backBrush_;
 
@@ -21,6 +20,9 @@ namespace sdf {
 		std::shared_ptr<Window> ptrParent_;
 	public:
 		static int mouseX_, mouseY_;
+		static const int32_t taskMessage_ = WM_USER + 8274;
+
+	
 
 		//构造
 		Window(void) : v(*this) {
@@ -72,6 +74,7 @@ namespace sdf {
 			return (HFONT) ::SendMessage(handle, WM_GETFONT, 0, 0);
 		}
 
+		
 
 		static Font& SetGlobalFont(Font& f) {
 			GlobalFont().SetFont(f);
@@ -79,6 +82,9 @@ namespace sdf {
 		}
 
 		static float getScale();
+
+		
+		static void runOnUi(std::function<void()>&& func);
 
 		static void scalePos(ControlPos& pos, bool xy = true) {
 			if (pos.scaleMeasured)

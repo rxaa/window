@@ -27,12 +27,29 @@ namespace sdf {
 		friend class ScrollView;
 
 		friend class Window;
+		friend class LoadAnim;
 
 		//最近一次创建的窗口,用于OnInit
 		static HWND currentHandle_;
 		static Window* parentWindow_;
 		static Window* currentWindow_;
 
+		static std::vector<Control*> controlOpenList_;
+
+
+		static void removeOpenControl(Control* cont);
+
+		template<class T, class Func>
+		static void findControl(Func&& func) {
+			for (auto s : controlOpenList_) {
+				T* con = dynamic_cast<T*>(s);
+				if (con != nullptr) {
+					try {
+						func(*con);
+					}DF_CATCH_ALL;
+				}
+			}
+		}
 
 		void InitUserData() const {
 			::SetWindowLongPtr(handle_, GWLP_USERDATA, (LONG_PTR)this);
@@ -96,6 +113,8 @@ namespace sdf {
 
 
 		static HINSTANCE progInstance_;
+
+		static const uint32_t animInterval_ = 15;
 
 		Control() {
 		}
@@ -462,7 +481,7 @@ namespace sdf {
 			::SendMessage(handle_, EM_SETLIMITTEXT, nMax, 0);
 		}
 
-		
+
 
 		void setFont(const Font& font) {
 			::SendMessage(handle_, WM_SETFONT, (WPARAM)font.GetFont(), TRUE);
@@ -525,6 +544,8 @@ namespace sdf {
 			return (uint32_t)(std::rand() % (INT_MAX - 1)) + 1;
 		}
 
+		static void drawRect(uint32_t* buf, int32_t bufW, int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color);
+
 	protected:
 
 		void _removeFromParent(bool remove);
@@ -537,6 +558,19 @@ namespace sdf {
 
 		void measureWrapY(int32_t minH);
 
+		void drawParentBack(DrawBuffer* draw) {
+			int32_t* buf = (int32_t*)draw->buttonBmpBuf_;
+			int bufW = draw->buttonBmp_.GetWidth();
+
+			uint32_t color = 0;
+			Control* par = parent_;
+			while (par != nullptr && color == 0) {
+				if (par->lastDrawStyle)
+					color = par->lastDrawStyle->backColor;
+				par = par->parent_;
+			}
+			drawRect((uint32_t*)buf, bufW, drawX_, drawY_, GetWidth(), GetHeight(), color);
+		}
 		static void adjustRecur(sdf::Control* cont) {
 			cont->measureX_ = 0;
 			cont->measureY_ = 0;

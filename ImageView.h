@@ -12,6 +12,8 @@ namespace sdf {
 		//间隔时间,毫秒
 		uint32_t interval = 50;
 		bool loop = true;
+	
+
 		ImageView() {
 
 		}
@@ -28,6 +30,11 @@ namespace sdf {
 		void add(T head, Args... rest) {
 			imageList_.push_back(head);
 			add(rest...);
+		}
+
+		void setBitmap(const std::shared_ptr<Bitmap> & head) {
+			imageList_.clear();
+			imageList_.push_back(head);
 		}
 
 		void add() {
