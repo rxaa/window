@@ -8,9 +8,9 @@ namespace sdf
 	protected:
 
 	public:
-		std::vector<Ty> list_;
-		std::function<std::shared_ptr<sdf::View>(Ty& dat, size_t index)> onCreateView;
-		std::function<void(Ty& dat, size_t index)> onShowView;
+		std::vector< std::shared_ptr <Ty>> list_;
+		std::function<std::shared_ptr<sdf::View>(std::shared_ptr < Ty> & dat, size_t index)> onCreateView;
+		std::function<void(std::shared_ptr <Ty> & dat, size_t index)> onShowView;
 		ListView() {
 		}
 
@@ -34,6 +34,7 @@ namespace sdf
 				if (i >= 0 && i < (intptr_t)list_.size()) {
 					onShowView(list_[i], (size_t)i);
 				}
+				measureUpdate();
 			}
 			else {
 				COUT(tt_("Empty onShowView!"));
@@ -49,7 +50,7 @@ namespace sdf
 			}
 		}
 
-		void add(const Ty& dat) {
+		void add(const std::shared_ptr<Ty> & dat) {
 			size_t i = list_.size();
 			list_.push_back(dat);
 			auto con = onCreateView(list_[i], i);
@@ -81,13 +82,13 @@ namespace sdf
 
 #define ui_list_bind(Ty,...)  v.onCreateView = [&](auto& dat, size_t index) {\
 	auto con = std::make_shared<Ty>(__VA_ARGS__);\
-	con->dat = &dat;\
+	con->dat = dat;\
 	con->index = index;\
 	return con;\
 };\
 v.onShowView = [&](auto& dat, size_t index) {\
 	auto con = v.castMember<Ty>(index);\
-	con->dat = &dat;\
+	con->dat = dat;\
 	con->index = index;\
 	con->bindUpdate();\
 };

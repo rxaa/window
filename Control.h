@@ -280,6 +280,13 @@ namespace sdf {
 			updateDrawXY();
 		}
 
+		virtual void onKillFocus() {
+
+		}
+		virtual void onFocus() {
+
+		}
+
 		virtual void bindUpdate(bool draw = true) {
 			if (onBind_) {
 				onBind_();
@@ -329,6 +336,7 @@ namespace sdf {
 			DF_ASSERT(handle_ != NULL);
 			::ShowWindow(handle_, 1);
 		}
+
 
 		///是否启用控件
 		inline void enable(bool bo) {
@@ -487,7 +495,7 @@ namespace sdf {
 			::SendMessage(handle_, WM_SETFONT, (WPARAM)font.GetFont(), TRUE);
 		}
 
-		void Message(const df::CC& con, const df::CC& tit = tcc_("消息")) {
+		/*void Message(const df::CC& con, const df::CC& tit = tcc_("消息")) {
 			MessageBox(handle_, con.char_, tit.char_, MB_ICONINFORMATION);
 		}
 
@@ -497,7 +505,7 @@ namespace sdf {
 
 		void MessageERR(const df::CC& con, const df::CC& tit = tcc_("错误")) {
 			MessageBox(handle_, con.char_, tit.char_, MB_ICONERROR);
-		}
+		}*/
 
 		void measureUpdate() {
 			Control::adjustRecur(this);
@@ -624,6 +632,7 @@ namespace sdf {
 			for (auto& con : memberList_) {
 				con->Init();
 			}
+
 		}
 
 
@@ -669,6 +678,6 @@ namespace sdf {
 #include "Tray.h"
 #include "Window.h"
 #include "FormMenu.h"
-
+#include "FormOk.h"
 
 #endif // Control_h__2013_8_1__9_24

@@ -5,7 +5,7 @@
 
 moodycamel::ConcurrentQueue<std::function<void()>> taskQueue_;
 
-std::unordered_map<int32_t, std::shared_ptr<sdf::Bitmap>>* sdf::Bitmap::bmpBuffer = new  std::unordered_map<int32_t, std::shared_ptr<sdf::Bitmap>>();
+std::unordered_map<int32_t, std::shared_ptr<sdf::Bitmap>>* sdf::Bitmap::bmpBuffer = new std::unordered_map<int32_t, std::shared_ptr<sdf::Bitmap>>();
 
 
 std::unordered_map<FontType, sdf::Font> sdf::Font::cache_;
@@ -41,8 +41,7 @@ sdf::Font::Font(long size, df::CC name) {
 	font_ = CreateFontIndirect(&logFont_);
 }
 
-sdf::Font::Font(const FontType& type)
-{
+sdf::Font::Font(const FontType& type) {
 	rawSize = type.size;
 	auto size = (long)((float)type.size * Window::getScale());
 	memset(&logFont_, 0, sizeof(LOGFONT));
@@ -121,6 +120,9 @@ void sdf::Control::measureWrapX(int32_t minW) {
 		subW = minW;
 
 	pos.w = subW + pos.paddingLeft + pos.paddingRight;
+	if (pos.maxW >= 0 && pos.w > pos.maxW) {
+		pos.w = pos.maxW;
+	}
 }
 
 void sdf::Control::measureWrapY(int32_t minH) {
@@ -148,10 +150,13 @@ void sdf::Control::measureWrapY(int32_t minH) {
 	if (subH < minH)
 		subH = minH;
 	pos.h = subH + pos.paddingTop + pos.paddingBottom;
+
+	if (pos.maxH >= 0 && pos.h > pos.maxH) {
+		pos.h = pos.maxH;
+	}
 }
 
-void sdf::Control::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw)
-{
+void sdf::Control::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw) {
 	if (draw) {
 
 		if (pos.textAlignX != AlignType::center || pos.textMutiline) {
@@ -163,7 +168,6 @@ void sdf::Control::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw)
 			rect.right -= pos.paddingRight;
 			rect.bottom -= pos.paddingBottom;
 		}
-
 
 
 		if (pos.textMutiline)
@@ -193,18 +197,10 @@ void sdf::Control::onMeasure() {
 	int32_t w = 0, h = 0;
 	getContentWH(w, h);
 
-	//if (pos.wrapX || pos.wrapY) {
-		//wrap,提前计算所有子成员
-	for (auto& sub : memberList_) {
-		sub->onMeasure();
-	}
-	//}
-	measureX_ = 0;
-	measureY_ = 0;
 
 	int32_t flexXsum = 0, flexYsum = 0;
 	int32_t flexWsum = 0, flexHsum = 0;
-	//bool isRight = false;
+	bool isRight = false;
 	//计算所有邻居flex
 	if (pos.flexX > 0 || pos.flexY > 0) {
 		int32_t oldMx = parent_->measureX_, oldMy = parent_->measureY_;
@@ -212,18 +208,18 @@ void sdf::Control::onMeasure() {
 			if (sub->pos.absolute)
 				continue;
 
-			//if (isRight) {//提前计算右侧邻节点
-			//	//sub->onMeasure();
-			//}
+			if (isRight && sub->pos.w < 0) {//提前计算右侧邻节点
+				sub->onMeasure();
+			}
 
-			//if (sub.get() == this) {
-			//	isRight = true;
-			//}
+			if (sub.get() == this) {
+				isRight = true;
+			}
 
 
 			if (sub->pos.flexX > 0)
 				flexXsum += sub->pos.flexX;
-			else if (sub->pos.w > 0) {//待改进,-1需要sub->onMeasure();
+			else if (sub->pos.w > 0) {
 				flexWsum += sub->pos.w + sub->pos.marginRight + sub->pos.marginLeft;
 			}
 
@@ -243,34 +239,42 @@ void sdf::Control::onMeasure() {
 				pos.w = parent_->pos.w - parent_->pos.paddingLeft - parent_->pos.paddingRight - pos.marginLeft -
 				pos.marginRight;
 			else
-				pos.w = (int32_t)std::round((parent_->pos.w - parent_->pos.paddingLeft - parent_->pos.paddingRight - flexWsum) * pos.flexX /
+				pos.w = (int32_t)std::round(
+					(parent_->pos.w - parent_->pos.paddingLeft - parent_->pos.paddingRight - flexWsum) * pos.flexX /
 					(float)flexXsum) - pos.marginLeft - pos.marginRight;
 		}
 	}
-	else if (pos.wrapX) {
-		measureWrapX(w);
-	}
-	else {
 
-	}
 
 	if (pos.flexY > 0) {
 
 		if (parent_->pos.h > 0) {
 			if (parent_->pos.vector)
-				pos.h = (int32_t)std::round((parent_->pos.h - flexHsum - parent_->pos.paddingTop - parent_->pos.paddingBottom) * pos.flexY /
+				pos.h = (int32_t)std::round(
+					(parent_->pos.h - flexHsum - parent_->pos.paddingTop - parent_->pos.paddingBottom) * pos.flexY /
 					(float)flexYsum) - pos.marginTop - pos.marginBottom;
 			else
 				pos.h = parent_->pos.h - pos.marginTop - pos.marginBottom - parent_->pos.paddingTop -
 				parent_->pos.paddingBottom;
 		}
 	}
-	else if (pos.wrapY) {
+
+	if (pos.wrapX || pos.wrapY) {
+		//wrap,提前计算所有子成员
+		for (auto& sub : memberList_) {
+			sub->onMeasure();
+		}
+	}
+	measureX_ = 0;
+	measureY_ = 0;
+
+	if (pos.wrapX) {
+		measureWrapX(w);
+	}
+
+	if (pos.wrapY) {
 		reGetContentWH(w, h);
 		measureWrapY(h);
-	}
-	else {
-
 	}
 
 	if (parent_->pos.w > 0 && pos.w > 0) {
@@ -309,6 +313,8 @@ void sdf::Control::onMeasure() {
 		}
 	}
 
+	pos.controlW = pos.w;
+	pos.controlH = pos.h;
 
 }
 
@@ -458,7 +464,7 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 		while (taskQueue_.try_dequeue(ff)) {
 			try {
 				ff();
-			}DF_CATCH_ALL;
+			} DF_CATCH_ALL;
 		}
 		break;
 	}
@@ -490,7 +496,7 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 					   //	LPDRAWITEMSTRUCT lpDIS = (LPDRAWITEMSTRUCT)lParam;
 					   //	sdf::Control* controlP = sdf::Window::GetUserData(lpDIS->hwndItem);
 					   //	if (controlP) {
-					   //	
+					   //
 					   //		if (lpDIS->itemState & ODS_SELECTED) {
 					   //			controlP->isPress = true;
 					   //		}
@@ -515,7 +521,7 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 					   //	break;
 					   //}
 
-									   //移出窗口
+					   //移出窗口
 	case WM_NCMOUSEMOVE: {
 		//case WM_NCMOUSELEAVE: {
 		if (sdf::Control::mouseHandle_) {
@@ -534,7 +540,7 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 					   //	if (GetGestureInfo((HGESTUREINFO)lParam, &gestureInfo)) {
 					   //		switch (gestureInfo.dwID) {
 					   //		case GID_ZOOM:
-					   //			// Code for zooming goes here     
+					   //			// Code for zooming goes here
 					   //			break;
 					   //		case GID_PAN:
 					   //			// Code for panning goes here
@@ -630,18 +636,18 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 			break;
 		}
 		case WM_CLOSE: {
-			winP->closeRelease();
-			break;
+			winP->closeRelease((int)wParam);
+			return TRUE;
 		}
 
 		case WM_COMMAND: {
 			auto l = LOWORD(wParam);
 			//auto h = HIWORD(wParam);
 
-			if (l == IDCANCEL) {
-				winP->closeRelease();
-				break;
-			}
+			/*	if (l == IDCANCEL) {
+					winP->closeRelease();
+					break;
+				}*/
 
 			if (lParam) {
 				Control* controlP = GetUserData((HWND)lParam);
@@ -667,6 +673,12 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 				controlP->ControlNotify(lpn);
 			break;
 		}
+		case WM_KILLFOCUS: {
+			winP->onKillFocus();
+		}
+		case WM_SETFOCUS: {
+			winP->onFocus();
+		}
 		case WM_ACTIVATE: {
 			if (wParam == WA_INACTIVE) {
 				winP->onInActive();
@@ -679,8 +691,10 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 		case WM_SIZE: {
 			winP->pos.w = LOWORD(lParam);
 			winP->pos.h = HIWORD(lParam);
-			winP->onResize();
-			winP->AdjustLayout();
+			if (winP->drawBuff_ && winP->drawBuff_->buttonBmpBuf_) {
+				winP->onResize();
+				winP->AdjustLayout();
+			}
 			break;
 		}
 		case WM_MOVE: {
@@ -695,11 +709,16 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 			for (auto& sub : winP->memberList_) {
 				sub->onDraw();
 			}
-			//PAINTSTRUCT ps={0} ;
-			//HDC dd=BeginPaint (hDlg, &ps) ;
+
 			//COUT(t_t("dc:")<<winP->gdi_.GetDc()<<t_t(" - ")<<dd);
 			winP->onPaint();
-			//EndPaint (hDlg, &ps) ;
+			auto d = winP->getDraw();
+			if (d) {
+				PAINTSTRUCT ps = { 0 };
+				HDC dd = BeginPaint(hDlg, &ps);
+				d->buttonBmp_.DrawTo(dd);
+				EndPaint(hDlg, &ps);
+			}
 			break;
 		}
 					 //case WM_ERASEBKGND:
@@ -763,6 +782,7 @@ void sdf::Window::setPosXY() {
 
 void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 
+	Gdi::gobalGdi().setFont(GlobalFont());
 
 	onCreate();
 
@@ -797,10 +817,10 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 	Window::scalePos(pos, false);
 
 	setPosXY();
-	DWORD sty = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VISIBLE;
+	DWORD sty = WS_VISIBLE;
 
 	//WS_EX_TRANSPARENT;
-	DWORD styEX = 0;
+	DWORD styEX = getExStyle();
 
 	if (maxBox)
 		sty |= WS_MAXIMIZEBOX;
@@ -808,8 +828,13 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 	if (minBox)
 		sty |= WS_MINIMIZEBOX;
 
-	if (resizeAble)
-		sty |= WS_THICKFRAME;
+	if (resizeAble) {
+		sty |= WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU | WS_THICKFRAME;
+	}
+	else {
+		//sty |= WS_POPUP;
+		//styEX |= WS_EX_DLGMODALFRAME;
+	}
 
 
 	if (initMaxSize)
@@ -819,10 +844,7 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 		sty |= WS_MINIMIZE;
 
 	if (noBorder) {
-		sty = WS_POPUP | WS_VISIBLE | WS_SYSMENU;
-
-		//不显示在任务栏
-		styEX |= WS_EX_TOOLWINDOW;
+		sty = WS_POPUP | WS_VISIBLE;
 	}
 
 	handle_ = CreateWindowEx(styEX,
@@ -877,10 +899,13 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 			pos.y = Window::GetScreenHeight() - pos.h - borderSize_;
 		}
 
-		::SetWindowPos(handle_, 0, pos.x, pos.y, pos.w + borderSize_, pos.h + titleHeight_ + borderSize_,
-			SWP_NOZORDER | SWP_NOCOPYBITS);
-	}
+		::SetWindowPos(handle_, 0, pos.x, pos.y, pos.w + borderSize_ * 2, pos.h + titleHeight_ + borderSize_,
+			SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
 
+		if (pos.w > 0 && pos.h > 0) {
+			drawBuff_->newBmp(pos.w, pos.h);
+		}
+	}
 
 
 	::ShowWindow(handle_, show);
@@ -920,9 +945,13 @@ void sdf::Window::MessageLoop() {
 	}
 }
 
-void sdf::Window::closeRelease() {
+void sdf::Window::closeRelease(int code) {
+	if (!onClose(code)) {
+		return;
+	}
+
 	Control::removeOpenControl(this);
-	
+
 	ON_SCOPE_EXIT({
 					  ptr_.reset();
 		});
@@ -933,7 +962,7 @@ void sdf::Window::closeRelease() {
 	::DestroyWindow(handle_);
 	if (isMain)
 		::PostQuitMessage(0);
-	onClose();
+
 }
 
 void sdf::Window::run(bool show/*=true*/) {
@@ -959,8 +988,7 @@ float sdf::Window::getScale() {
 
 }
 
-void sdf::Window::runOnUi(std::function<void()>&& func)
-{
+void sdf::Window::runOnUi(std::function<void()>&& func) {
 	taskQueue_.enqueue(func);
 	::PostMessage(currentHandle_, taskMessage_, 0, 0);
 }
@@ -1307,7 +1335,6 @@ void sdf::ScrollView::onDraw() {
 		return;
 
 
-
 	updateDrawXY();
 
 	//COUT(tt_("scroll onDraw"));
@@ -1331,7 +1358,6 @@ void sdf::ScrollView::onDraw() {
 	}
 
 	if (drawSub) {
-
 
 
 		needDraw = false;
@@ -1646,8 +1672,7 @@ void sdf::ImageView::Init() {
 	}
 }
 
-void sdf::ImageView::onTimer(uint32_t)
-{
+void sdf::ImageView::onTimer(uint32_t) {
 	showI += 1;
 	if (showI >= (intptr_t)imageList_.size())
 		showI = 0;
@@ -1657,8 +1682,7 @@ void sdf::ImageView::onTimer(uint32_t)
 
 ////////////////////////////////Button//////////////////////////////////////////
 
-void sdf::LoadAnim::onDraw()
-{
+void sdf::LoadAnim::onDraw() {
 	auto draw = getDraw();
 
 	updateDrawXY();
@@ -1675,23 +1699,25 @@ void sdf::LoadAnim::onDraw()
 		int32_t w = GetWidth() - penSize * 2;
 
 		Gdiplus::Pen greenPen(Gdiplus::Color(Color::greenColor_), (float)penSize);
-		draw->graph_->DrawArc(&greenPen, drawX, drawY, w - pos.paddingLeft - pos.paddingRight, w - pos.paddingTop - pos.paddingBottom, startAngle, arcLen);
+		draw->graph_->DrawArc(&greenPen, drawX, drawY, w - pos.paddingLeft - pos.paddingRight,
+			w - pos.paddingTop - pos.paddingBottom, startAngle, arcLen);
 
 		Gdiplus::Pen bluePen(Gdiplus::Color(Color::blue), (float)penSize);
-		draw->graph_->DrawArc(&bluePen, drawX, drawY, w - pos.paddingLeft - pos.paddingRight, w - pos.paddingTop - pos.paddingBottom, (float)(startAngle + 180), arcLen);
+		draw->graph_->DrawArc(&bluePen, drawX, drawY, w - pos.paddingLeft - pos.paddingRight,
+			w - pos.paddingTop - pos.paddingBottom, (float)(startAngle + 180), arcLen);
 
 	}
 
 	if (dotSize > 0 && dotColor && showDot) {
 		Gdiplus::SolidBrush brush(Gdiplus::Color((Gdiplus::ARGB)dotColor));
-		Gdiplus::RectF ellipseRect2((float)drawX_ + (GetWidth() - dotSize) / 2, (float)drawY_ + (GetHeight() - dotSize) / 2, dotSize, dotSize);
+		Gdiplus::RectF ellipseRect2((float)drawX_ + (GetWidth() - dotSize) / 2,
+			(float)drawY_ + (GetHeight() - dotSize) / 2, dotSize, dotSize);
 		draw->graph_->FillEllipse(&brush, ellipseRect2);
 	}
 	drawMember(gdi_, draw);
 }
 
-void sdf::LoadAnim::doCreate()
-{
+void sdf::LoadAnim::doCreate() {
 	Control::doCreate();
 	dotSize = dotSize * Window::getScale();
 }
@@ -1740,8 +1766,7 @@ void sdf::LoadAnim::Init() {
 		setTimer(timerId, animInterval_);
 }
 
-void sdf::LoadAnim::onTimer(uint32_t)
-{
+void sdf::LoadAnim::onTimer(uint32_t) {
 
 	startAngle += 3 + ((uint16_t)arcInc >> 15) * 3;
 
@@ -1766,12 +1791,12 @@ void sdf::LoadAnim::onTimer(uint32_t)
 ////////////////////////////////Button//////////////////////////////////////////
 
 void sdf::Button::Init() {
-	if (style.backColor == 0 && !style.backImage && style.borderColor == 0) {
+	if (style.backColor == 0 && styleHover.backColor == 0 && !style.backImage && style.borderColor == 0) {
 		setColorDark(Color::blueColor_);
 	}
 
 	onMeasure();
-	//WS_TABSTOP | 
+	//WS_TABSTOP |
 	DWORD sty = BS_PUSHBUTTON | WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN;
 
 	if (!oldStyle) {
@@ -1866,8 +1891,7 @@ void sdf::DrawBuffer::newBmp(int32_t w, int32_t h) {
 }
 
 
-void sdf::Control::removeOpenControl(Control* cont)
-{
+void sdf::Control::removeOpenControl(Control* cont) {
 	for (intptr_t i = controlOpenList_.size() - 1; i >= 0; i--) {
 		auto con = controlOpenList_[i];
 		if (con == cont) {
@@ -2070,8 +2094,7 @@ void sdf::Control::removeFromParent() {
 
 }
 
-void sdf::Control::drawRect(uint32_t* buf, int32_t bufW, int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color)
-{
+void sdf::Control::drawRect(uint32_t* buf, int32_t bufW, int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color) {
 	for (int32_t yy = df::positive(y); yy < y + h; yy++) {
 		for (int32_t xx = df::positive(x); xx < x + w; xx++) {
 			buf[yy * bufW + xx] = color;
@@ -2350,7 +2373,7 @@ void sdf::ListBox::SetHorizontal(const df::CC& str) {
 void sdf::ComBox::Init() {
 	onMeasure();
 
-	DWORD sty = WS_TABSTOP | WS_CHILD | WS_VISIBLE | CBS_AUTOHSCROLL;
+	DWORD sty = WS_TABSTOP | WS_CHILD | WS_VISIBLE | CBS_AUTOHSCROLL | WS_VSCROLL;
 
 
 	if (editAble)
@@ -2388,6 +2411,7 @@ void sdf::ComBox::Init() {
 		}
 		initList.reset();
 	}
+
 	gdi_.Init(handle_);
 	//gdi_.SetPen(Pen::GetWhitePen());
 	//gdi_.SetBrush(BlueBrush_);
@@ -2415,9 +2439,11 @@ bool sdf::ComBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& re
 	}
 
 	if (msg == WM_COMMAND) {
+
+		auto lp = LOWORD(wParam);
 		switch (HIWORD(wParam)) {
 		case CBN_SELCHANGE:
-			if (onSelectChange_)
+			if (onSelectChange_ && lp == 0)
 				onSelectChange_();
 			break;
 		case CBN_EDITCHANGE:
@@ -2716,40 +2742,119 @@ char* sdf::Bitmap::CreateDib(int w, int h) {
 //// 设置透明度 0 - completely transparent   255 - opaque
 //::SetLayeredWindowAttributes(handle_, 0, 100, LWA_ALPHA);
 
+
+void sdf::FormOk::onCreate() {
+	//v.topMost = true;
+	v.maxBox = false;
+	v.minBox = false;
+	v.resizeAble = false;
+	v.pos.centerInParent();
+	v.pos.w = min(400, (int32_t)getScreenW());
+
+	ui_view{
+				v.pos.vector = true;
+
+				v.pos.flexX = 1;
+				v.style.backColor = Color::white;
+
+				ui_view {
+							v.pos.flexX = 1;
+							v.pos.textMutiline = true;
+							v.pos.padding(20);
+							v.text = content;
+						};
+
+				ui_view {
+							v.style.backColor = Color::yellowLight;
+							v.pos.flexX = 1;
+							ui_view {
+										v.pos.flexX = 2;
+									};
+							ui_button {
+										  v.pos.flexX = 1;
+										  buttonTrans(v, Color::red);
+										  v.pos.marginRight = 10;
+										  v.text = df::lang().cancel;
+										  ui_onclick {
+											  close();
+										  };
+									  };
+							ui_button {
+										  v.pos.flexX = 1;
+										  buttonTrans(v, Color::green);
+										  v.text = df::lang().ok;
+										  ui_onclick {
+											  close();
+										  };
+									  };
+						};
+	};
+
+
+}
+
+void sdf::FormOk::onInit() {
+	//toTop();
+	v.topMost = false;
+	updateStyle();
+}
+
+void sdf::FormMenu::onInit() {
+	toTop();
+	v.topMost = false;
+	updateStyle();
+}
+
 void sdf::FormMenu::onCreate() {
 	//v.pos.centerInParent();
 	v.noBorder = true;
-	ui_view{
-				v.style.backColor = Color::blue;
-				v.pos.padding(1);
-				v.pos.vector = true;
+	v.topMost = true;
+	ui_scroll{
+				  if (width > 0)
+					  v.pos.w = width;
+				  v.style.backColor = Color::white;
+				  v.style.border(1);
+				  v.style.borderColor = Color::blue;
 
-				for (auto& item : itemList_) {
-					ui_button {
-								  v.pos.centerY();
-								  sdf::Button::setMenuStyle(&v);
+				  v.stylePress = v.style;
+				  v.styleHover = v.style;
+				  v.styleDisable = v.style;
+				  v.pos.maxH = 500;
+				  v.pos.padding(1);
 
-								  ui_onclick {
-									  close();
-									  if (item.onClick)
-										  item.onClick();
-								  };
-								  if (item.img) {
-									  ui_image {
-												   v.pos.w = 25;
-												   v.add(item.img);
-											   };
-								  }
-								  ui_view {
-											  v.pos.marginLeft = 5;
-											  v.pos.marginRight = 5;
-											  v.text = item.text;
-
-										  };
+				  v.pos.vector = true;
 
 
-							  };
-				}
+				  for (auto& item : itemList_) {
+					  ui_button {
+									if (width > 0) {
+										v.pos.flexX = 1;
+										//v.pos.centerX();
+									}
+									v.pos.centerY();
+									sdf::Button::setMenuStyle(&v);
+
+									ui_onclick {
+										close();
+										if (item.onClick)
+											item.onClick();
+									};
+									if (item.img) {
+										ui_image {
+													 v.pos.w = 25;
+													 v.add(item.img);
+												 };
+									}
+									ui_view {
+												v.pos.marginLeft = 5;
+												v.pos.marginRight = 5;
+												v.text = item.text;
+
+											};
+
+
+								};
+				  }
 
 	};
 }

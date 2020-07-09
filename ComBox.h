@@ -86,7 +86,7 @@ namespace sdf
 
 		}
 		virtual void onDraw() {
-			COUT(tt_("重绘ComBox"));
+			COUT(tt_("onDraw ComBox"));
 			updateDrawXY();
 			update();
 			DrawBuffer* draw = getDraw();

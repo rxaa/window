@@ -31,15 +31,15 @@ namespace sdf {
 			imageList_.push_back(head);
 			add(rest...);
 		}
+		void add() {
 
+		}
 		void setBitmap(const std::shared_ptr<Bitmap> & head) {
 			imageList_.clear();
 			imageList_.push_back(head);
 		}
 
-		void add() {
-
-		}
+	
 
 		virtual void getContentWH(int32_t& w, int32_t& h) {
 			w = Gdi::GetScreen().GetTextPixel(text).cx;

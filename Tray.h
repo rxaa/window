@@ -31,7 +31,7 @@ namespace sdf
 		static std::function<void()> & OnRightClick();
 
 		//创建任务栏通知,(通知文字,图标资源标识符,气泡内容,气泡停留时间)
-		BOOL Init(const df::CC & szToolTip, UINT icon, const df::CC & szInfo = tcc_("程序已启动!"), int uTimeout = 2000)
+		BOOL Init(const df::CC & szToolTip, UINT icon, const df::CC & szInfo = tcc_("Start!"), int uTimeout = 2000)
 		{
 			HWND hParent=Control::currentHandle_;
 

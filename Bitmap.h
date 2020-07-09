@@ -136,7 +136,7 @@ namespace sdf {
 			Init();
 			img_ = ::CreateCompatibleBitmap(GetScreen().GetDc(), w, h);
 			if (img_ == 0) {
-				DF_ERR(_T("CreateCompatibleBitmap错误"));
+				DF_ERR(_T("CreateCompatibleBitmap failed!"));
 				return false;
 			}
 			width_ = w;

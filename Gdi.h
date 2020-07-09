@@ -27,12 +27,12 @@ namespace sdf {
 			purple = 0xFFd85ad8,
 			//浅蓝
 			blueLight = 0xFFd0edfe,
-			blueLight2 = 0xFFeef9ff,
+			blueLight2 = 0xFFf5fafc,
 
 			orange = 0xFFff9b30,
 
 			yellow = 0xFFf3dd60,
-			yellowLight = 0xFFfff8d1,
+			yellowLight = 0xFFfffdf5,
 
 			//蓝
 			blue = 0xFF4192E1,
@@ -309,15 +309,22 @@ namespace sdf {
 				format |= DT_CENTER;
 			else if (alignX == AlignType::end)
 				format |= DT_RIGHT;
-			else
+			else {
 				format |= DT_LEFT;
+			}
 
-			if (alignY == AlignType::center)
-				format |= DT_VCENTER;
+
+			if (alignY == AlignType::center) {
+				if (alignX == AlignType::start)
+					format |= DT_TOP;
+				else
+					format |= DT_VCENTER;
+			}
 			else if (alignY == AlignType::end)
 				format |= DT_BOTTOM;
 			else
 				format |= DT_TOP;
+
 
 			return ::DrawText(hdc_, str.char_, (int)str.length_, &rect, format);
 		}

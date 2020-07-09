@@ -4,7 +4,7 @@ namespace sdf {
 	class Window;
 
 	typedef std::shared_ptr<Window> WinPtr;
-	
+
 	class Window : public Control {
 		DF_DISABLE_COPY_ASSIGN(Window);
 	protected:
@@ -22,7 +22,7 @@ namespace sdf {
 		static int mouseX_, mouseY_;
 		static const int32_t taskMessage_ = WM_USER + 8274;
 
-	
+
 
 		//构造
 		Window(void) : v(*this) {
@@ -52,6 +52,8 @@ namespace sdf {
 
 		bool noBorder = false;
 
+		bool topMost = false;
+
 		//是否为顶层窗口,关闭时同时结束消息循环
 		bool isMain = false;
 
@@ -69,12 +71,28 @@ namespace sdf {
 
 		int16_t GetBorderSize() const { return borderSize_; }
 
+		uint32_t getExStyle() {
+			uint32_t styEX = 0;
+			if (topMost)
+				styEX |= WS_EX_TOPMOST;
+
+			if (noBorder) {
+				//不显示在任务栏
+				styEX |= WS_EX_TOOLWINDOW;
+			}
+			return styEX;
+		}
+
+		void updateStyle() {
+			SetWindowLong(handle_, GWL_EXSTYLE, getExStyle());
+		}
+
 		//获取窗口字体
 		inline static HFONT GetFont(HWND handle) {
 			return (HFONT) ::SendMessage(handle, WM_GETFONT, 0, 0);
 		}
 
-		
+
 
 		static Font& SetGlobalFont(Font& f) {
 			GlobalFont().SetFont(f);
@@ -83,7 +101,7 @@ namespace sdf {
 
 		static float getScale();
 
-		
+
 		static void runOnUi(std::function<void()>&& func);
 
 		static void scalePos(ControlPos& pos, bool xy = true) {
@@ -101,6 +119,12 @@ namespace sdf {
 				pos.w = (int32_t)((float)pos.w * sca);
 			if (pos.h > 0)
 				pos.h = (int32_t)((float)pos.h * sca);
+
+			if (pos.maxH > 0)
+				pos.maxH = (int32_t)((float)pos.maxH * sca);
+
+			if (pos.maxW > 0)
+				pos.maxW = (int32_t)((float)pos.maxW * sca);
 
 			pos.paddingLeft = (int32_t)((float)pos.paddingLeft * sca);
 			pos.paddingTop = (int32_t)((float)pos.paddingTop * sca);
@@ -169,6 +193,12 @@ namespace sdf {
 		}
 
 
+		inline void toTop() {
+			::BringWindowToTop(handle_);
+			::SetForegroundWindow(handle_);
+			::SetFocus(handle_);
+		}
+
 		void setPosToMouse() {
 			POINT p;
 			GetCursorPos(&p);
@@ -177,8 +207,8 @@ namespace sdf {
 		}
 
 		//关闭窗口
-		void close() {
-			PostMessage(handle_, WM_CLOSE, 0, 0);
+		void close(int code = 0) {
+			PostMessage(handle_, WM_CLOSE, code, 0);
 		}
 
 
@@ -197,17 +227,27 @@ namespace sdf {
 
 
 		void AdjustLayout();
-		 
-		virtual void onDraw() override{
+
+		virtual void onDraw() override {
 
 		}
 
+		//获取屏幕高宽实际像素
 		static int GetScreenWidth() {
 			return ::GetSystemMetrics(SM_CXSCREEN);
 		}
 
 		static int GetScreenHeight() {
 			return ::GetSystemMetrics(SM_CYSCREEN);
+		}
+
+		//获取dpi缩放后的屏幕高宽
+		static float getScreenW() {
+			return GetScreenWidth() / getScale();
+		}
+
+		static float getScreenH() {
+			return GetScreenHeight() / getScale();
 		}
 
 		static void PopMessage(const df::CC& msg, int time = 1500);
@@ -224,7 +264,7 @@ namespace sdf {
 
 		virtual void onPaint();
 
-	
+
 		virtual void onCreate() {}
 
 		virtual void onResize() {
@@ -239,8 +279,8 @@ namespace sdf {
 
 		}
 
-		virtual void onClose() {
-
+		virtual bool onClose(int code) {
+			return true;
 		}
 
 		//布局更改事件
@@ -271,7 +311,7 @@ namespace sdf {
 
 	protected:
 		//关闭窗口
-		void closeRelease();
+		void closeRelease(int code);
 
 		void setPosXY();
 
@@ -285,7 +325,6 @@ namespace sdf {
 
 		//模态化与非模态话共用
 		static intptr_t __stdcall WndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
-
 
 	};
 

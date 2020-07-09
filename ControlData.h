@@ -88,6 +88,13 @@ namespace sdf {
         int32_t w = -1;
         int32_t h = -1;
 
+
+        //实际高宽
+        int32_t controlW = -1;
+        int32_t controlH = -1;
+        int32_t maxW = -1;
+        int32_t maxH = -1;
+
         int32_t paddingLeft = 0;
         int32_t paddingTop = 0;
         int32_t paddingRight = 0;
