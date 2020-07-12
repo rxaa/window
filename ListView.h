@@ -9,8 +9,8 @@ namespace sdf
 
 	public:
 		std::vector< std::shared_ptr <Ty>> list_;
-		std::function<std::shared_ptr<sdf::View>(std::shared_ptr < Ty> & dat, size_t index)> onCreateView;
-		std::function<void(std::shared_ptr <Ty> & dat, size_t index)> onShowView;
+		std::function<std::shared_ptr<sdf::View>(std::shared_ptr < Ty>& dat, size_t index)> onCreateView;
+		std::function<void(std::shared_ptr <Ty>& dat, size_t index)> onShowView;
 		ListView() {
 		}
 
@@ -41,16 +41,22 @@ namespace sdf
 			}
 		}
 
-		void del(intptr_t i) {
+		void del(intptr_t i, bool update) {
 			DF_ASSERT(i >= 0 && i < (intptr_t)list_.size());
 			if (i >= 0 && i < (intptr_t)list_.size()) {
-				memberList_[i]->removeFromParent(false);
-				memberList_.erase(i);
-				list_.erase(i);
+				memberList_[i]->_removeFromParent(false);
+				memberList_.erase(memberList_.begin() + i);
+				list_.erase(list_.begin() + i);
+			}
+			if (update && onShowView) {
+				for (size_t ind = (size_t)i; ind < list_.size(); ind++) {
+					onShowView(list_[ind], ind);
+				}
+				onDraw();
 			}
 		}
 
-		void add(const std::shared_ptr<Ty> & dat) {
+		void add(const std::shared_ptr<Ty>& dat) {
 			size_t i = list_.size();
 			list_.push_back(dat);
 			auto con = onCreateView(list_[i], i);

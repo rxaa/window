@@ -32,7 +32,7 @@ namespace sdf {
 		}
 
 		virtual ~Window(void) {
-			COUT(tt_("window gone"));
+			COUT(tt_("window gone:") << text);
 			delete drawBuff_;
 		}
 

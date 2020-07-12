@@ -4,10 +4,10 @@ namespace sdf {
 
 	class FormOk : public sdf::Window {
 	protected:
-		std::function<void()> onOkClick_;
+		
 		String content;
 	public:
-
+		std::function<void()> onOk_;
 		FormOk(df::CC t) {
 			content = t.ToString();
 		}
@@ -16,13 +16,18 @@ namespace sdf {
 			content = t.ToString();
 		}
 
-		FormOk(const std::function<void()>& onClick) {
-			onOkClick_ = onClick;
+		FormOk(df::CC t,const std::function<void()>& onClick) {
+			content = t.ToString();
+			onOk_ = onClick;
 		}
 
 		~FormOk() {
 		}
 
+		virtual bool onClose(int code) override {
+			onOk_ = nullptr;
+			return true;
+		}
 
 		template < class ...Args>
 		static std::shared_ptr<FormOk> create(Args&& ... rest) {
@@ -39,7 +44,6 @@ namespace sdf {
 			but.fontSize(17);
 
 			but.styleHover = but.style;
-			but.styleHover.color = Color::blue;
 			but.styleHover.backColor = Color::blueLight;
 			//but->styleHover.border(1);	
 			//but->styleHover.borderColor = Color::blue;

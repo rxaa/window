@@ -24,7 +24,7 @@ namespace sdf {
 		}
 
 		~FormMenu() {
-			COUT(tt_("FormMenu gone"));
+			
 		}
 
 		template < class ...Args>
@@ -52,6 +52,12 @@ namespace sdf {
 
 		void addItem(const MenuItem& item) {
 			itemList_.push_back(item);
+		}
+
+		virtual bool onClose(int code) override {
+			onClick_ = nullptr;
+			itemList_.clear();
+			return true;
 		}
 
 		virtual void onCreate() override;

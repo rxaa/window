@@ -689,9 +689,12 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 			break;
 		}
 		case WM_SIZE: {
-			winP->pos.w = LOWORD(lParam);
-			winP->pos.h = HIWORD(lParam);
-			if (winP->drawBuff_ && winP->drawBuff_->buttonBmpBuf_) {
+			int32_t w = LOWORD(lParam);
+			int32_t h = HIWORD(lParam);
+			//if (w != winP->pos.w || h != winP->pos.h) 
+			{
+				winP->pos.w = w;
+				winP->pos.h = h;
 				winP->onResize();
 				winP->AdjustLayout();
 			}
@@ -2775,7 +2778,8 @@ void sdf::FormOk::onCreate() {
 										  buttonTrans(v, Color::red);
 										  v.pos.marginRight = 10;
 										  v.text = df::lang().cancel;
-										  ui_onclick {
+										  ui_onclick{
+
 											  close();
 										  };
 									  };
@@ -2784,6 +2788,7 @@ void sdf::FormOk::onCreate() {
 										  buttonTrans(v, Color::green);
 										  v.text = df::lang().ok;
 										  ui_onclick {
+											  onOk_();
 											  close();
 										  };
 									  };

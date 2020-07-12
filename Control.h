@@ -553,10 +553,10 @@ namespace sdf {
 		}
 
 		static void drawRect(uint32_t* buf, int32_t bufW, int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color);
-
+		void _removeFromParent(bool remove);
 	protected:
 
-		void _removeFromParent(bool remove);
+	
 
 		WNDPROC prevMsgProc_ = 0;
 		int32_t measureX_ = 0;
