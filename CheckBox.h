@@ -17,7 +17,12 @@ namespace sdf
 			styleDisable.borderColor = Color::grey;
 			styleCheck.borderColor = Color::blue;
 			styleFocused.borderColor = Color::blue;
+			styleHover.backColor = Color::blueLight;
 			styleHover.borderColor = Color::blue;
+			stylePress.shadowSize = 3;
+			stylePress.borderColor = Color::blue;
+			stylePress.backColor = Color::blueLight;
+			pos.textAlignX = AlignType::start;
 		}
 
 		virtual ~CheckBox() {

@@ -159,15 +159,29 @@ void sdf::Control::measureWrapY(int32_t minH) {
 void sdf::Control::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw) {
 	if (draw) {
 
-		if (pos.textAlignX != AlignType::center || pos.textMutiline) {
+		if (pos.textMutiline) {
 			rect.left += pos.paddingLeft;
 			rect.top += pos.paddingTop;
-		}
-
-		if (pos.textAlignY != AlignType::center || pos.textMutiline) {
 			rect.right -= pos.paddingRight;
 			rect.bottom -= pos.paddingBottom;
 		}
+		else {
+			if (pos.textAlignX != AlignType::center) {
+				rect.left += pos.paddingLeft;
+				rect.right -= pos.paddingRight;
+			}
+			if (pos.textAlignY != AlignType::center) {
+				rect.top += pos.paddingTop;
+				rect.bottom -= pos.paddingBottom;
+			}
+		}
+
+
+
+		/*if (pos.textAlignY != AlignType::center || pos.textMutiline) {
+			rect.right -= pos.paddingRight;
+			rect.bottom -= pos.paddingBottom;
+		}*/
 
 
 		if (pos.textMutiline)
@@ -691,7 +705,7 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 		case WM_SIZE: {
 			int32_t w = LOWORD(lParam);
 			int32_t h = HIWORD(lParam);
-			//if (w != winP->pos.w || h != winP->pos.h) 
+			//if (w != winP->pos.w || h != winP->pos.h)
 			{
 				winP->pos.w = w;
 				winP->pos.h = h;
@@ -2575,10 +2589,10 @@ void sdf::CheckBox::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw
 
 
 	}
-	rect.left = drawX + w;
+	rect.left = drawX + w + pos.paddingLeft;
 	rect.top = getDrawY();
 
-	draw->buttonBmp_.Txt(rect, text);
+	draw->buttonBmp_.Txt(rect, text, pos.textAlignX, pos.textAlignY);
 }
 
 bool sdf::CheckBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& ret) {
@@ -2778,7 +2792,7 @@ void sdf::FormOk::onCreate() {
 										  buttonTrans(v, Color::red);
 										  v.pos.marginRight = 10;
 										  v.text = df::lang().cancel;
-										  ui_onclick{
+										  ui_onclick {
 
 											  close();
 										  };
@@ -2788,7 +2802,8 @@ void sdf::FormOk::onCreate() {
 										  buttonTrans(v, Color::green);
 										  v.text = df::lang().ok;
 										  ui_onclick {
-											  onOk_();
+											  if (onOk_)
+												  onOk_();
 											  close();
 										  };
 									  };

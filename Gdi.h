@@ -315,9 +315,6 @@ namespace sdf {
 
 
 			if (alignY == AlignType::center) {
-				if (alignX == AlignType::start)
-					format |= DT_TOP;
-				else
 					format |= DT_VCENTER;
 			}
 			else if (alignY == AlignType::end)
