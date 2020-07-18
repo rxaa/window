@@ -52,7 +52,7 @@ namespace sdf
 				for (size_t ind = (size_t)i; ind < list_.size(); ind++) {
 					onShowView(list_[ind], ind);
 				}
-				onDraw();
+				measureUpdate();
 			}
 		}
 
