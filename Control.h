@@ -213,22 +213,7 @@ namespace sdf {
 		}
 
 		//是否完全溢出父容器
-		bool showOverflow() {
-
-
-			int32_t dX = getDrawX();
-			int32_t dY = getDrawY();
-			int32_t w = GetWidth() + parent_->pos.paddingLeft + parent_->pos.paddingRight;
-			int32_t h = GetHeight() + parent_->pos.paddingTop + parent_->pos.paddingBottom;
-			if (dX + w < parent_->drawX_ ||
-				dX > parent_->drawX_ + parent_->GetWidth() + parent_->pos.paddingLeft + parent_->pos.paddingRight ||
-				dY + h < parent_->drawY_ ||
-				dY > parent_->drawY_ + parent_->GetHeight() + parent_->pos.paddingTop + parent_->pos.paddingBottom
-				) {
-				return true;
-			}
-			return false;
-		}
+		bool showOverflow();
 
 		int32_t getDrawY() {
 			return parent_->drawY_ - parent_->getVertPos() + pos.y;
@@ -244,16 +229,7 @@ namespace sdf {
 		//在鼠标位置弹出菜单
 		static bool PopMenu(int menuId, WinHandle hWnd);
 
-		inline void ReleaseUserData() {
-			if (handle_) {
-				::SetWindowLongPtr(handle_, GWLP_USERDATA, 0);
-				if (parent_ == 0 && !isTop) {
-					::DestroyWindow(handle_);
-				}
-				handle_ = 0;
-			}
-
-		}
+		void ReleaseUserData();
 
 		inline static Control* GetUserData(HWND wnd) {
 			return (Control*) ::GetWindowLongPtr(wnd, GWLP_USERDATA);
@@ -287,22 +263,7 @@ namespace sdf {
 
 		}
 
-		virtual void bindUpdate(bool draw = true) {
-			if (onBind_) {
-				onBind_();
-				for (auto& sub : memberList_) {
-					sub->bindUpdate(draw);
-				}
-
-				if (draw)
-					onDraw();
-			}
-			else {
-				for (auto& sub : memberList_) {
-					sub->bindUpdate(draw);
-				}
-			}
-		}
+		virtual void bindUpdate(bool draw = true);
 
 
 		virtual void onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw);
@@ -490,22 +451,9 @@ namespace sdf {
 		}
 
 
-
 		void setFont(const Font& font) {
 			::SendMessage(handle_, WM_SETFONT, (WPARAM)font.GetFont(), TRUE);
 		}
-
-		/*void Message(const df::CC& con, const df::CC& tit = tcc_("消息")) {
-			MessageBox(handle_, con.char_, tit.char_, MB_ICONINFORMATION);
-		}
-
-		bool MessageOK(const df::CC& con, const df::CC& tit = tcc_("消息")) {
-			return MessageBox(handle_, con.char_, tit.char_, MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
-		}
-
-		void MessageERR(const df::CC& con, const df::CC& tit = tcc_("错误")) {
-			MessageBox(handle_, con.char_, tit.char_, MB_ICONERROR);
-		}*/
 
 		void measureUpdate() {
 			Control::adjustRecur(this);
@@ -513,11 +461,6 @@ namespace sdf {
 		}
 
 		void update() {
-			/*RECT re;
-			re.left = 0;
-			re.top = 0;
-			re.right = pos.w;
-			re.bottom = pos.h;*/
 			::InvalidateRect(handle_, NULL, true);
 			//::UpdateWindow(handle_);
 		}
@@ -566,40 +509,12 @@ namespace sdf {
 
 		void measureWrapY(int32_t minH);
 
-		void drawParentBack(DrawBuffer* draw) {
-			int32_t* buf = (int32_t*)draw->buttonBmpBuf_;
-			int bufW = draw->buttonBmp_.GetWidth();
+		void drawParentBack(DrawBuffer* draw);
 
-			uint32_t color = 0;
-			Control* par = parent_;
-			while (par != nullptr && color == 0) {
-				if (par->lastDrawStyle)
-					color = par->lastDrawStyle->backColor;
-				par = par->parent_;
-			}
-			drawRect((uint32_t*)buf, bufW, drawX_, drawY_, GetWidth(), GetHeight(), color);
-		}
-		static void adjustRecur(sdf::Control* cont) {
-			cont->measureX_ = 0;
-			cont->measureY_ = 0;
-			for (auto& control : cont->memberList_) {
-				control->onMeasure();
-				adjustRecur(control.get());
-			}
-		}
+		static void adjustRecur(sdf::Control* cont);
 
 		//更新在父容器中的位置
-		void updateDrawXY() {
-			int32_t hp = parent_->getHoriPos();
-			int32_t vp = parent_->getVertPos();
-			drawX_ = parent_->drawX_ - hp + pos.x;
-			drawY_ = parent_->drawY_ - vp + pos.y;
-
-			if (pos.x - hp != showX_ || pos.y - vp != showY_) {
-				setPos(pos.x - hp, pos.y - vp);
-			}
-
-		}
+		void updateDrawXY();
 
 		void drawMember(Gdi& gdi, DrawBuffer* draw);
 
@@ -626,14 +541,7 @@ namespace sdf {
 		virtual void Init();
 
 
-		void initAllSub() {
-			measureX_ = 0;
-			measureY_ = 0;
-			for (auto& con : memberList_) {
-				con->Init();
-			}
-
-		}
+		void initAllSub();
 
 
 	};

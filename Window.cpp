@@ -1,7 +1,8 @@
-﻿#include <concurrentqueue.h>
+﻿
 #include "StdAfx.h"
 #include "Control.h"
 #include "Font.h"
+#include "../df/df_impl.hpp"
 
 moodycamel::ConcurrentQueue<std::function<void()>> taskQueue_;
 
@@ -153,6 +154,39 @@ void sdf::Control::measureWrapY(int32_t minH) {
 
 	if (pos.maxH >= 0 && pos.h > pos.maxH) {
 		pos.h = pos.maxH;
+	}
+}
+
+void sdf::Control::drawParentBack(DrawBuffer* draw)
+{
+	int32_t* buf = (int32_t*)draw->buttonBmpBuf_;
+	int bufW = draw->buttonBmp_.GetWidth();
+
+	uint32_t color = 0;
+	Control* par = parent_;
+	while (par != nullptr && color == 0) {
+		if (par->lastDrawStyle)
+			color = par->lastDrawStyle->backColor;
+		par = par->parent_;
+	}
+	drawRect((uint32_t*)buf, bufW, drawX_, drawY_, GetWidth(), GetHeight(), color);
+}
+
+void sdf::Control::bindUpdate(bool draw)
+{
+	if (onBind_) {
+		onBind_();
+		for (auto& sub : memberList_) {
+			sub->bindUpdate(draw);
+		}
+
+		if (draw)
+			onDraw();
+	}
+	else {
+		for (auto& sub : memberList_) {
+			sub->bindUpdate(draw);
+		}
 	}
 }
 
@@ -358,6 +392,15 @@ void sdf::Control::Init() {
 	InitUserData();
 }
 
+void sdf::Control::initAllSub()
+{
+	measureX_ = 0;
+	measureY_ = 0;
+	for (auto& con : memberList_) {
+		con->Init();
+	}
+}
+
 void sdf::Control::doCreate() {
 
 	if (onCreate_) {
@@ -395,11 +438,35 @@ void sdf::Brush::SetFromBitmap(Bitmap& bmp) {
 
 
 
+void sdf::Control::adjustRecur(sdf::Control* cont)
+{
+	cont->measureX_ = 0;
+	cont->measureY_ = 0;
+	for (auto& control : cont->memberList_) {
+		control->onMeasure();
+		adjustRecur(control.get());
+	}
+}
+
+void sdf::Control::updateDrawXY()
+{
+	int32_t hp = parent_->getHoriPos();
+	int32_t vp = parent_->getVertPos();
+	drawX_ = parent_->drawX_ - hp + pos.x;
+	drawY_ = parent_->drawY_ - vp + pos.y;
+
+	if (pos.x - hp != showX_ || pos.y - vp != showY_) {
+		setPos(pos.x - hp, pos.y - vp);
+	}
+
+}
+
 void sdf::Control::drawMember(Gdi& gdi, DrawBuffer* draw) {
 	needDraw = false;
-	ON_SCOPE_EXIT({
-					  needDraw = true;
-		});
+	DF_SCOPE_GUARD{
+		needDraw = true;
+	};
+
 	for (auto& sub : memberList_) {
 
 		if (sub->showOverflow()) {
@@ -968,10 +1035,10 @@ void sdf::Window::closeRelease(int code) {
 	}
 
 	Control::removeOpenControl(this);
+	DF_SCOPE_GUARD{
+		ptr_.reset();
+	};
 
-	ON_SCOPE_EXIT({
-					  ptr_.reset();
-		});
 	if (parent_) {
 		parent_->enable(true);
 	}
@@ -990,23 +1057,15 @@ void sdf::Window::run(bool show/*=true*/) {
 
 
 float sdf::Window::getScale() {
-	if (currentWindow_) {
-		auto res = (float)GetDpiForWindow(currentWindow_->GetHandle()) / (float)96.0;
-		if (res < 1)
-			res = 1;
-		return res;
-	}
-	else {
-		auto res = (float)GetDeviceCaps(Gdi::GetScreen().GetDc(), LOGPIXELSX) / (float)96.0;
-		if (res < 1)
-			res = 1;
-		return res;
-	}
+	auto res = (float)GetDeviceCaps(Gdi::GetScreen().GetDc(), LOGPIXELSX) / (float)96.0;
+	if (res < 1)
+		res = 1;
+	return res;
 
 }
 
 void sdf::Window::runOnUi(std::function<void()>&& func) {
-	taskQueue_.enqueue(func);
+	taskQueue_.enqueue(std::move(func));
 	::PostMessage(currentHandle_, taskMessage_, 0, 0);
 }
 
@@ -1191,6 +1250,22 @@ void sdf::Window::InitWinData() {
 
 ////////////////////////////////Control//////////////////////////////////////////
 
+bool sdf::Control::showOverflow()
+{
+	int32_t dX = getDrawX();
+	int32_t dY = getDrawY();
+	int32_t w = GetWidth() + parent_->pos.paddingLeft + parent_->pos.paddingRight;
+	int32_t h = GetHeight() + parent_->pos.paddingTop + parent_->pos.paddingBottom;
+	if (dX + w < parent_->drawX_ ||
+		dX > parent_->drawX_ + parent_->GetWidth() + parent_->pos.paddingLeft + parent_->pos.paddingRight ||
+		dY + h < parent_->drawY_ ||
+		dY > parent_->drawY_ + parent_->GetHeight() + parent_->pos.paddingTop + parent_->pos.paddingBottom
+		) {
+		return true;
+	}
+	return false;
+}
+
 sdf::Font& sdf::Control::GlobalFont() {
 	static Font* f = 0;
 	if (f == nullptr) {
@@ -1228,6 +1303,18 @@ bool sdf::Control::PopMenu(int menuId, WinHandle hWnd) {
 
 	::DestroyMenu(hMenu);
 	return true;
+}
+
+void sdf::Control::ReleaseUserData()
+{
+	if (handle_) {
+		::SetWindowLongPtr(handle_, GWLP_USERDATA, 0);
+		if (parent_ == 0 && !isTop) {
+			::DestroyWindow(handle_);
+		}
+		handle_ = 0;
+	}
+
 }
 
 
@@ -2655,7 +2742,7 @@ bool sdf::Bitmap::Load(const df::CC& name) {
 		height_ = 1;
 		DF_ERR(name << tcc_(" Gdiplus Load Image failed!"));
 		return false;
-	}
+}
 	auto alpha = imgp_->GetPixelFormat() & PixelFormatAlpha;
 	hasAlpha = !!alpha;
 	width_ = imgp_->GetWidth();
@@ -2686,9 +2773,10 @@ bool sdf::Bitmap::Load(int id, const df::CC& resType /*= tcc_("png")*/) {
 	// load resource into memory
 	DWORD len = ::SizeofResource(Control::progInstance_, hRsrc);
 	HGLOBAL lpRsrc = ::LoadResource(Control::progInstance_, hRsrc);
-	ON_SCOPE_EXIT({
-					  ::FreeResource(lpRsrc);
-		});
+	DF_SCOPE_GUARD{
+		::FreeResource(lpRsrc);
+	};
+
 
 	///重新申请一块内存
 	HGLOBAL m_hMem = GlobalAlloc(GMEM_FIXED, len);
@@ -2701,11 +2789,12 @@ bool sdf::Bitmap::Load(int id, const df::CC& resType /*= tcc_("png")*/) {
 	releaseImg();
 	imgp_ = Gdiplus::Image::FromStream(pstm);
 
-	ON_SCOPE_EXIT({
-					  ::GlobalUnlock(m_hMem);
-					  pstm->Release();
-					  ::GlobalFree(m_hMem);
-		});
+	DF_SCOPE_GUARD{
+		::GlobalUnlock(m_hMem);
+		pstm->Release();
+		::GlobalFree(m_hMem);
+	};
+
 
 	if (imgp_ == nullptr || imgp_->GetLastStatus() != Gdiplus::Ok) {
 		width_ = 1;
