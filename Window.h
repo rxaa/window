@@ -159,10 +159,7 @@ namespace sdf {
 			::SendMessage(handle_, WM_SETICON, TRUE, (LPARAM)LoadIcon(Control::progInstance_, MAKEINTRESOURCE(id)));
 		}
 
-		inline static void GetMousePos(LPARAM lParam) {
-			mouseX_ = LOWORD(lParam);
-			mouseY_ = HIWORD(lParam);
-		}
+
 
 		/// <summary>
 		/// 打开并显示窗口
@@ -288,10 +285,10 @@ namespace sdf {
 
 		}
 
-		//窗口移动事件
-		virtual void onMove() {
+        //移动事件
+        virtual void onMove(int32_t x,int32_t y) {
 
-		}
+        }
 
 		//消息循环
 		static void MessageLoop();

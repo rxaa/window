@@ -39,8 +39,8 @@ namespace sdf {
 
 		static void removeOpenControl(Control* cont);
 
-		template<class T, class Func>
-		static void findControl(Func&& func) {
+		template<class T>
+		static void findControl(std::function<void(T&)>&& func) {
 			for (auto s : controlOpenList_) {
 				T* con = dynamic_cast<T*>(s);
 				if (con != nullptr) {
@@ -76,12 +76,13 @@ namespace sdf {
 		//最后一次绘制的样式
 		ControlStyle* lastDrawStyle = 0;
 
-		//是否需要绘制到屏幕
-		bool needDraw = true;
+
 		//是否顶层节点
 		bool isTop = false;
 		bool isEnable = true;
 	public:
+		//是否需要绘制到屏幕
+		bool needDraw = true;
 		std::function<void()> onCreate_;
 		std::function<void()> onBind_;
 		friend Window;
@@ -215,6 +216,10 @@ namespace sdf {
 		//是否完全溢出父容器
 		bool showOverflow();
 
+		inline bool hited(int32_t x, int32_t y) {
+			return x > pos.x && y > pos.y && x < pos.x + pos.w && y < pos.y + pos.h;
+		}
+
 		int32_t getDrawY() {
 			return parent_->drawY_ - parent_->getVertPos() + pos.y;
 		}
@@ -252,6 +257,13 @@ namespace sdf {
 
 		}
 
+		virtual void onLeftClick() {
+
+		}
+		virtual void onRightClick() {
+
+		}
+
 		virtual void onDraw() {
 			updateDrawXY();
 		}
@@ -273,6 +285,9 @@ namespace sdf {
 			h = 0;
 		}
 
+		virtual void onMouseMove(int32_t x,int32_t y){
+
+		}
 
 		virtual void reGetContentWH(int32_t& w, int32_t& h) {
 
@@ -323,29 +338,11 @@ namespace sdf {
 		}
 
 		//设置显示位置
-		inline BOOL setPos(int32_t x, int32_t y) {
-			DF_ASSERT(handle_ != NULL);
-			showX_ = x;
-			showY_ = y;
-			//SetWindowPos很慢
-			if (handle_)
-				return ::SetWindowPos(handle_, 0, x, y, 0, 0,
-					SWP_NOSIZE | SWP_NOZORDER | SWP_DEFERERASE | SWP_NOOWNERZORDER | SWP_NOACTIVATE |
-					SWP_NOCOPYBITS | SWP_NOREDRAW);
-			return false;
-		}
+		BOOL setPos(int32_t x, int32_t y);
 
-		inline BOOL setPosAndHW(int32_t x, int32_t y, int32_t w, int32_t h) {
-			showX_ = x;
-			showY_ = y;
-			showW_ = w;
-			showH_ = h;
-			if (handle_)
-				return ::SetWindowPos(handle_, 0, x, y, w, h, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOREDRAW);
-			return false;
-		}
+		BOOL setPosAndHW(int32_t x, int32_t y, int32_t w, int32_t h);
 
-		inline BOOL setHW(int32_t w, int32_t h, bool save = true) {
+		BOOL setHW(int32_t w, int32_t h, bool save = true) {
 			if (save) {
 				showW_ = w;
 				showH_ = h;
@@ -455,8 +452,19 @@ namespace sdf {
 			::SendMessage(handle_, WM_SETFONT, (WPARAM)font.GetFont(), TRUE);
 		}
 
-		void measureUpdate() {
-			Control::adjustRecur(this);
+		virtual void measureUpdate() {
+			if (parent_) {
+				parent_->measureX_ = pos.x;
+				parent_->measureY_ = pos.y;
+				onMeasure();
+				measureX_ = 0;
+				measureY_ = 0;
+				for (auto& sub : memberList_) {
+					sub->onMeasure();
+				}
+			}
+			
+			//Control::adjustRecur(this);
 			onDraw();
 		}
 
@@ -489,6 +497,8 @@ namespace sdf {
 			return true;
 		}
 
+
+
 		virtual void doCreate();
 
 		uint32_t generateId() {
@@ -499,7 +509,7 @@ namespace sdf {
 		void _removeFromParent(bool remove);
 	protected:
 
-	
+
 
 		WNDPROC prevMsgProc_ = 0;
 		int32_t measureX_ = 0;
@@ -515,6 +525,7 @@ namespace sdf {
 
 		//更新在父容器中的位置
 		void updateDrawXY();
+
 
 		void drawMember(Gdi& gdi, DrawBuffer* draw);
 
@@ -573,7 +584,7 @@ namespace sdf {
 
 #define ui_bind v.onBind_=[&]()
 
-#include "View.h"
+# include"View.h"
 #include "Button.h"
 #include "ImageView.h"
 #include "LoadAnim.h"
@@ -587,5 +598,7 @@ namespace sdf {
 #include "Window.h"
 #include "FormMenu.h"
 #include "FormOk.h"
+#include "ViewOk.h"
+#include "ImageMore.h"
 
 #endif // Control_h__2013_8_1__9_24

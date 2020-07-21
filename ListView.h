@@ -56,11 +56,15 @@ namespace sdf
 			}
 		}
 
-		void add(const std::shared_ptr<Ty>& dat) {
+		void add(const std::shared_ptr<Ty>& dat, bool update) {
 			size_t i = list_.size();
 			list_.push_back(dat);
 			auto con = onCreateView(list_[i], i);
 			addMember(con);
+
+			if (update) {
+				measureUpdate();
+			}
 		}
 
 		void clear() {

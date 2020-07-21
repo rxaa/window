@@ -111,8 +111,8 @@ namespace sdf {
         bool wrapX = false;
         bool wrapY = false;
 
-        //是否垂直显示
-        bool vector = false;
+        //是否垂直布局所有成员, 否则水平布局
+        bool vertical = false;
 
         //使用绝对坐标
         bool absolute = false;

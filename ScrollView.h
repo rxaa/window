@@ -16,10 +16,11 @@ namespace sdf
 		int32_t vertRemain = 0;
 		int32_t horiPos = 0;
 		int32_t horiRemain = 0;
+		Control * hoverView= nullptr;
 	public:
 
 		ScrollView() {
-			pos.vector = true;
+			pos.vertical = true;
 			drawBuff_ = new DrawBuffer();
 		}
 		virtual ~ScrollView() {
@@ -29,44 +30,13 @@ namespace sdf
 
 
 		static int getScrollWidth() {
-			return  GetSystemMetrics(SM_CXVSCROLL);
+			return GetSystemMetrics(SM_CXVSCROLL);
 		}
 
-		void setVertScrollInfo(int max, int page) {
-			vertMax = max;
-			vertPage = page;
+		void setVertScrollInfo(int max, int page);
 
-			if (!handle_)
-				return;
+		void setHoriScrollInfo(int max, int page);
 
-			SCROLLINFO si = { 0 };
-			si.cbSize = sizeof(si);
-			si.nMin = 0;
-			si.nMax = max;
-			si.nPage = page;
-			si.fMask = SIF_RANGE | SIF_PAGE;
-
-			SetScrollInfo(handle_, SB_VERT, &si, TRUE);
-		}
-
-		void setHoriScrollInfo(int max, int page) {
-			horiMax = max;
-			horiPage = page;
-
-			if (!handle_)
-				return;
-
-
-			SCROLLINFO si = { 0 };
-			si.cbSize = sizeof(si);
-			si.nMin = 0;
-			si.nMax = max;
-			si.nPage = page;
-			si.fMask = SIF_RANGE | SIF_PAGE;
-
-
-			SetScrollInfo(handle_, SB_HORZ, &si, TRUE);
-		}
 		void addVertPos(int val) {
 			vertPos += val;
 
@@ -105,12 +75,17 @@ namespace sdf
 			return vertPos * Control::GlobalFont().GetFontSize();
 		}
 
+		virtual void onRightClick() override ;
+        virtual void onMouseMove(int32_t x,int32_t y) override ;
+		virtual void onLeave()  override;
+
+
+
 		virtual void onMeasure() override;
 
 		virtual void onDraw() override;
 
 		virtual void Init() override;
-
 	
 
 		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT& ret) override;

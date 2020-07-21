@@ -34,30 +34,6 @@ namespace sdf {
 			return std::make_shared<FormOk>(rest...);
 		}
 
-		static void buttonTrans(sdf::Button& but, uint32_t color) {
-
-			but.pos.paddingX(20);
-			but.pos.paddingY(10);
-			but.style.backColor = 0;
-			but.style.color = color;
-			but.fontBold();
-			but.fontSize(17);
-
-			but.styleHover = but.style;
-			but.styleHover.backColor = Color::blueLight;
-			//but->styleHover.border(1);	
-			//but->styleHover.borderColor = Color::blue;
-
-			but.stylePress = but.styleHover;
-			but.stylePress.shadowSize = 3;
-
-			but.styleDisable = but.style;
-			but.styleDisable.color = Color::darkGrey;
-
-			but.styleCheck = but.style;
-			but.styleFocused = but.style;
-		}
-
 		virtual void onCreate() override;
 
 		virtual void onInit() override;
