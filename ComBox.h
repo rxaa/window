@@ -13,6 +13,7 @@ namespace sdf
 		bool editAble = false;
 
 		ComBox() {
+			hasCursor = false;
 			pos.w = Control::GlobalFont().getRawSize() * 5;
 			pos.h = Control::GlobalFont().getRawSize() + 7;
 		}
@@ -87,10 +88,10 @@ namespace sdf
 		}
 		virtual void onDraw() {
 			COUT(tt_("onDraw ComBox"));
-			updateDrawXY();
+			updateHandleXy();
 			update();
 			DrawBuffer* draw = getDraw();
-			gdi_.DrawTo(draw->buttonBmp_, drawX_, drawY_, pos.w, pos.h);
+			gdi_.DrawTo(draw->buttonBmp_, getDrawX(), getDrawY(), pos.w, pos.h);
 		}
 	protected:
 		Gdi gdi_;

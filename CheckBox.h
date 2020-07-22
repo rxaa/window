@@ -32,12 +32,11 @@ namespace sdf
 			h = GlobalFont().GetFontSize() + 4;
 			w = Gdi::GetScreen().GetTextPixel(text).cx + h + 4;
 		}
+		virtual bool onLeftUp() override;
 
 		virtual void onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw) override;
 
 	protected:
-
-		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT& ret) override;
 	};
 
 

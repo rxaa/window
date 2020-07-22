@@ -4,8 +4,10 @@
 #include "ControlData.h"
 #include "Font.h"
 
+
 namespace sdf {
 
+	class Timer;
 
 	class Control : public std::enable_shared_from_this<Control> {
 		DF_DISABLE_COPY_ASSIGN(Control);
@@ -27,6 +29,7 @@ namespace sdf {
 		friend class ScrollView;
 
 		friend class Window;
+
 		friend class LoadAnim;
 
 		//最近一次创建的窗口,用于OnInit
@@ -35,7 +38,6 @@ namespace sdf {
 		static Window* currentWindow_;
 
 		static std::vector<Control*> controlOpenList_;
-
 
 		static void removeOpenControl(Control* cont);
 
@@ -46,18 +48,36 @@ namespace sdf {
 				if (con != nullptr) {
 					try {
 						func(*con);
-					}DF_CATCH_ALL;
+					} DF_CATCH_ALL;
 				}
 			}
 		}
 
 		void InitUserData() const {
-			::SetWindowLongPtr(handle_, GWLP_USERDATA, (LONG_PTR)this);
+			if (handle_)
+				::SetWindowLongPtr(handle_, GWLP_USERDATA, (LONG_PTR)this);
 		}
 
 
+		template<class Func1, class Func2>
+		void doEvent(Func1 f1, Func2 f2) {
+			auto ho = this->hoverView;
+			auto last = ho;
+			while (ho) {
+				if (!(ho->*f1)())
+					break;
+				last = ho;
+				ho = ho->hoverView;
+			}
+			while (last) {
+				if (!(last->*f2)())
+					break;
+				last = last->parent_;
+			}
+		}
+
 		//按钮焦点对象
-		static Control* mouseHandle_;
+		//static Control* mouseHandle_;
 
 		/// <summary>
 		/// 绘图缓冲,每个window和scrollView有单独的缓冲
@@ -69,23 +89,32 @@ namespace sdf {
 		int32_t showX_ = 0;
 		int32_t showY_ = 0;
 
-		//相对于背景画布的坐标
+		//用于子控件的绘制坐标
 		int32_t drawX_ = 0;
 		int32_t drawY_ = 0;
 
 		//最后一次绘制的样式
 		ControlStyle* lastDrawStyle = 0;
 
+		Control* hoverView = nullptr;
+
+		WNDPROC prevMsgProc_ = 0;
+		int32_t measureX_ = 0;
+		int32_t measureY_ = 0;
 
 		//是否顶层节点
 		bool isTop = false;
 		bool isEnable = true;
+		bool hasCursor = false;
+	
 	public:
-		//是否需要绘制到屏幕
-		bool needDraw = true;
 		std::function<void()> onCreate_;
 		std::function<void()> onBind_;
 		friend Window;
+
+		bool inited = false;
+		//是否需要绘制到屏幕
+		bool needDraw = true;
 		bool isHover = false;
 		bool isFocused = false;
 		bool isDisable = false;
@@ -111,7 +140,6 @@ namespace sdf {
 		String text;
 		//所有成员控件列表
 		std::vector<std::shared_ptr<Control>> memberList_;
-
 
 		static HINSTANCE progInstance_;
 
@@ -161,6 +189,19 @@ namespace sdf {
 			return draw;
 		}
 
+		Control* getTopParent() {
+			auto par = parent_;
+			if (par == nullptr)
+				return par;
+
+			for (;;) {
+				if (par->parent_ == nullptr)
+					return par;
+				par = par->parent_;
+			}
+			return par;
+		}
+
 		template<typename Derived>
 		inline std::shared_ptr<Derived> sharedBase() {
 			//return std::shared_ptr<Derived>(static_cast<Derived*>(this));
@@ -196,8 +237,16 @@ namespace sdf {
 		}
 
 		HWND getParentHandle() {
-			if (parent_)
-				return parent_->handle_;
+			auto par = parent_;
+			while (par) {
+				if (par->handle_) {
+					return par->handle_;
+				}
+				par = par->parent_;
+			}
+			//			if (parent_){
+			//				return parent_->handle_;
+			//			}
 			return 0;
 		}
 
@@ -213,11 +262,11 @@ namespace sdf {
 			return parent_->drawX_ - parent_->getHoriPos() + pos.x;
 		}
 
-		//是否完全溢出父容器
+		//判断是否完全溢出父容器
 		bool showOverflow();
 
 		inline bool hited(int32_t x, int32_t y) {
-			return x > pos.x && y > pos.y && x < pos.x + pos.w && y < pos.y + pos.h;
+			return x >= pos.x && y >= pos.y && x <= pos.x + pos.w && y <= pos.y + pos.h;
 		}
 
 		int32_t getDrawY() {
@@ -231,8 +280,6 @@ namespace sdf {
 			progInstance_ = inst;
 		}
 
-		//在鼠标位置弹出菜单
-		static bool PopMenu(int menuId, WinHandle hWnd);
 
 		void ReleaseUserData();
 
@@ -253,15 +300,37 @@ namespace sdf {
 
 		}
 
-		virtual void onPress(bool down) {
-
+		virtual bool onCaptureLeftDown() {
+			return true;
 		}
 
-		virtual void onLeftClick() {
-
+		virtual bool onCaptureRightDown() {
+			return true;
 		}
-		virtual void onRightClick() {
 
+		virtual bool onCaptureLeftUp() {
+			return true;
+		}
+
+		virtual bool onCaptureRightUp() {
+			return true;
+		}
+		virtual bool onLeftDown() {
+			return true;
+		}
+
+		virtual bool onRightDown() {
+			return true;
+		}
+
+
+		//返回flase中的事件回流
+		virtual bool onLeftUp() {
+			return true;
+		}
+
+		virtual bool onRightUp() {
+			return true;
 		}
 
 		virtual void onDraw() {
@@ -271,6 +340,7 @@ namespace sdf {
 		virtual void onKillFocus() {
 
 		}
+
 		virtual void onFocus() {
 
 		}
@@ -285,17 +355,18 @@ namespace sdf {
 			h = 0;
 		}
 
-		virtual void onMouseMove(int32_t x,int32_t y){
 
-		}
+		void doLeave();
+
+		void doParentMove();
+
+		virtual void onMouseMove(int32_t x, int32_t y);
 
 		virtual void reGetContentWH(int32_t& w, int32_t& h) {
 
 		}
 
 		virtual void onMeasure();
-
-		virtual void onTimer(uint32_t) {}
 
 		//*******************************************
 		// Summary : 获取在父窗口中的位置与大小
@@ -304,13 +375,13 @@ namespace sdf {
 
 
 		inline void hide() const {
-			DF_ASSERT(handle_ != NULL);
-			::ShowWindow(handle_, 0);
+			if (handle_)
+				::ShowWindow(handle_, 0);
 		}
 
 		inline void show() const {
-			DF_ASSERT(handle_ != NULL);
-			::ShowWindow(handle_, 1);
+			if (handle_)
+				::ShowWindow(handle_, 1);
 		}
 
 
@@ -347,25 +418,28 @@ namespace sdf {
 				showW_ = w;
 				showH_ = h;
 			}
-			return ::SetWindowPos(handle_, 0, 0, 0, w, h, SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER | SWP_NOCOPYBITS);
+			if (handle_)
+				return ::SetWindowPos(handle_, 0, 0, 0, w, h, SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER | SWP_NOCOPYBITS);
+			return false;
 		}
 
 		//static inline BOOL SetPos(WinHandle handle, int x, int y, int w, int h);
 
 		inline void setLimitText(int maxLen) {
-			DF_ASSERT(handle_ != NULL);
-			::SendMessage(handle_, EM_SETLIMITTEXT, maxLen, 0);
+			if (handle_)
+				::SendMessage(handle_, EM_SETLIMITTEXT, maxLen, 0);
 		}
 
 		void setReadOnly(BOOL bReadOnly /* = TRUE */) {
-			::SendMessage(handle_, EM_SETREADONLY, bReadOnly, 0L);
+			if (handle_)
+				::SendMessage(handle_, EM_SETREADONLY, bReadOnly, 0L);
 		}
 
 		//设置滚动条
 		inline void setProgressPos(int val) {
-			DF_ASSERT(handle_ != NULL);
 			DF_ASSERT(val >= 0);
-			::PostMessage(handle_, PBM_SETPOS, static_cast<WPARAM>(val), 0);
+			if (handle_)
+				::PostMessage(handle_, PBM_SETPOS, static_cast<WPARAM>(val), 0);
 		}
 
 		void addText(const df::CC& str);
@@ -403,12 +477,14 @@ namespace sdf {
 		}
 
 		void setActive() {
-			::SetActiveWindow(handle_);
+			if (handle_)
+				::SetActiveWindow(handle_);
 		}
 
 		void setFocus() {
 			//::SetActiveWindow(handle_);
-			::SetFocus(handle_);
+			if (handle_)
+				::SetFocus(handle_);
 		}
 
 
@@ -444,12 +520,14 @@ namespace sdf {
 
 
 		void setLimitText(UINT nMax) {
-			::SendMessage(handle_, EM_SETLIMITTEXT, nMax, 0);
+			if (handle_)
+				::SendMessage(handle_, EM_SETLIMITTEXT, nMax, 0);
 		}
 
 
 		void setFont(const Font& font) {
-			::SendMessage(handle_, WM_SETFONT, (WPARAM)font.GetFont(), TRUE);
+			if (handle_)
+				::SendMessage(handle_, WM_SETFONT, (WPARAM)font.GetFont(), TRUE);
 		}
 
 		virtual void measureUpdate() {
@@ -463,14 +541,9 @@ namespace sdf {
 					sub->onMeasure();
 				}
 			}
-			
+
 			//Control::adjustRecur(this);
 			onDraw();
-		}
-
-		void update() {
-			::InvalidateRect(handle_, NULL, true);
-			//::UpdateWindow(handle_);
 		}
 
 
@@ -493,27 +566,22 @@ namespace sdf {
 			return true;
 		}
 
-		virtual bool ControlNotify(LPNMHDR) {
-			return true;
-		}
-
-
-
 		virtual void doCreate();
 
-		uint32_t generateId() {
+		static uint32_t generateId() {
 			return (uint32_t)(std::rand() % (INT_MAX - 1)) + 1;
 		}
 
 		static void drawRect(uint32_t* buf, int32_t bufW, int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color);
+
 		void _removeFromParent(bool remove);
+
 	protected:
 
-
-
-		WNDPROC prevMsgProc_ = 0;
-		int32_t measureX_ = 0;
-		int32_t measureY_ = 0;
+		void update() {
+			::InvalidateRect(handle_, NULL, true);
+			//::UpdateWindow(handle_);
+		}
 
 		void measureWrapX(int32_t minW);
 
@@ -524,8 +592,12 @@ namespace sdf {
 		static void adjustRecur(sdf::Control* cont);
 
 		//更新在父容器中的位置
-		void updateDrawXY();
+		virtual void updateDrawXY();
 
+		//更新Handle相关控件的位置
+		void updateHandleXy();
+
+		void drawMember(DrawBuffer* draw);
 
 		void drawMember(Gdi& gdi, DrawBuffer* draw);
 
@@ -536,18 +608,12 @@ namespace sdf {
 
 		/**
 		* 设置定时器
-		* 每隔time毫秒触发onTimer
+		* 每隔time毫秒触发func
 		* @param id
 		* @param time 毫秒时间
 		*/
-		void setTimer(uint32_t id, uint32_t time) {
-			::SetTimer(handle_, id, time, 0);
-		}
-
-		void killTimer(uint32_t id) {
-			::KillTimer(handle_, id);
-		}
-
+		Timer setTimer(uint32_t time, std::function<void()>&& func);
+	
 		///执行measure, 创建窗口句柄, 初始化所有子view
 		virtual void Init();
 
@@ -584,7 +650,8 @@ namespace sdf {
 
 #define ui_bind v.onBind_=[&]()
 
-# include"View.h"
+#include "Timer.h"
+#include "View.h"
 #include "Button.h"
 #include "ImageView.h"
 #include "LoadAnim.h"

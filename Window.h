@@ -9,10 +9,9 @@ namespace sdf {
 		DF_DISABLE_COPY_ASSIGN(Window);
 	protected:
 
-
 		Brush backBrush_;
 
-		std::map<int, std::function<void()>> commandMap_;
+		
 		//自我引用, onClose时销毁
 		std::shared_ptr<Window> ptr_;
 
@@ -28,7 +27,7 @@ namespace sdf {
 		Window(void) : v(*this) {
 			v.style.backColor = Color::white;
 			isTop = true;
-			drawBuff_ = new DrawBuffer();
+			drawBuff_ = new DrawBuffer(&gdi_);
 		}
 
 		virtual ~Window(void) {
@@ -183,7 +182,6 @@ namespace sdf {
 		/// <param name="parent">不为空则禁用父窗口</param>
 		/// <param name="show"></param>
 		void open(Window* parent = nullptr, bool show = true) {
-			parent_ = parent;
 			if (parent)
 				ptrParent_ = parent->sharedBase<Window>();
 			openRaw(parent ? parent->GetHandle() : nullptr, show);
@@ -217,10 +215,6 @@ namespace sdf {
 		//显示窗口,并开始消息循环
 		void run(bool show = true);
 
-		template<class T>
-		void AddEvent(int id, T cb) {
-			commandMap_[id] = cb;
-		}
 
 
 		void AdjustLayout();

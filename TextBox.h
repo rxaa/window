@@ -20,6 +20,7 @@ namespace sdf
 		std::function<void()> onLeave_;
 
 		TextBox() {
+
 			pos.w = Control::GlobalFont().getRawSize() * 5;
 			pos.h = Control::GlobalFont().getRawSize() + 5;
 		}
@@ -30,11 +31,12 @@ namespace sdf
 
 		virtual void onDraw() {
 			//COUT(tt_("重绘TextBox"));
-			updateDrawXY();
+			updateHandleXy();
 			DrawBuffer* draw = getDraw();
 			update();
-			if (pos.w > 0 && pos.h > 0 && !mutiLine)
-				gdi_.DrawTo(draw->buttonBmp_, drawX_, drawY_, pos.w, pos.h);
+			if (pos.w > 0 && pos.h > 0 && !mutiLine) {
+				gdi_.DrawTo(draw->buttonBmp_, getDrawX(), getDrawY(), pos.w, pos.h);
+			}
 
 		}
 

@@ -4,45 +4,40 @@ namespace sdf {
 	class LoadAnim
 		: public Control {
 	protected:
-		uint32_t timerId = 0;
 		int16_t startAngle = 0;
 		int16_t arcLen = 6;
 		int16_t arcInc = 3;
 
 	public:
-		Gdi gdi_;
 		float dotSize = 0;
 		uint32_t dotColor = 0;
 		bool showDot = false;
 		bool showAnim = true;
+		Timer timer;
 
 		LoadAnim() {
 
 		}
 
-		void enableAnim(bool anim){
-            showAnim = anim;
-            if (showAnim) {
-                setTimer(timerId, animInterval_);
-            }
-            else {
-                killTimer(timerId);
-            }
+		void enableAnim(bool anim) {
+			if (anim && !timer) {
+				timer = setTimer(animInterval_, [this] {onTimer(); });
+			}
+			showAnim = anim;
+			if (!anim) {
+				timer.reset();
+			}
 		}
 
 		void showContent(bool anim, bool dot) {
 			showDot = dot;
 			enableAnim(anim);
 		}
-		 
+
 
 		virtual ~LoadAnim() {
-			//COUT(tt_("gone"));
-			if (timerId > 0) {
-				killTimer(timerId);
-			}
+			//COUT(tt_("LoadAnim gone"));
 		}
-
 
 		virtual void getContentWH(int32_t& w, int32_t& h) {
 			w = Gdi::GetScreen().GetTextPixel(text).cx;
@@ -58,9 +53,7 @@ namespace sdf {
 		///初始化
 		virtual void Init();
 
-		virtual void onTimer(uint32_t) override;
-
-		//virtual bool ControlProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& ret) override;
+		void onTimer();
 
 	};
 

@@ -6,20 +6,17 @@ namespace sdf
 		: public Control
 	{
 	protected:
-
 	public:
-		Gdi buttonGdi_;
 		//事件
 		std::function<void()> onClick_;
 		Button& v{ *this };
 
-
-		bool oldStyle = false;
 		bool isCheck = false;
 		ControlStyle styleCheck;
 		ControlStyle styleFocused;
 		Button()
 		{
+			hasCursor = true;
 			pos.paddingX(10);
 			pos.paddingY(6);
 		}
@@ -106,28 +103,62 @@ namespace sdf
 			//COUT(tt_("gone"));
 		}
 
-		virtual void onPress(bool down) {
+		virtual bool onLeftDown() override {
+			if (!isEnable) {
+				return false;
+			}
+
+			isPress = true;
 			onDraw();
+			return false;
 		}
 
-		virtual void onHover() {
+		virtual bool onLeftUp() override {
+			DF_SCOPE_GUARD
+			{
+				isPress = false;
+				onDraw();
+			};
+			if (onClick_ && isPress) {
+				onClick_();
+			}
+			return false;
+		}
+
+		virtual void onHover()  override {
+			if (!isEnable) {
+				return;
+			}
+			auto par = getTopParent();
+			if (par) {
+				par->hasCursor = true;
+			}
+		
 			SetCursor(LoadCursor(NULL, IDC_HAND));
 			onDraw();
 		}
 
-		virtual void onLeave() {
+		virtual void onLeave() override {
+			if (!isEnable) {
+				return;
+			}
 			//SetCursor(LoadCursor(NULL, IDC_ARROW));
+			auto par = getTopParent();
+			if (par) {
+				par->hasCursor = false;
+			}
+			isPress = false;
 			onDraw();
 		}
 
-		virtual void getContentWH(int32_t& w, int32_t& h) {
+		virtual void getContentWH(int32_t& w, int32_t& h)  override {
 			w = Gdi::GetScreen().GetTextPixel(text).cx;
 			if (w > 0)
 				h = GlobalFont().GetFontSize();
 		}
 
 
-		virtual void onDraw();
+		virtual void onDraw() override;
 
 
 	protected:
@@ -135,8 +166,6 @@ namespace sdf
 
 		//初始化位于initCreate之后执行
 		virtual void Init();
-
-		bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT&) override;
 
 	};
 

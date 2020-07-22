@@ -5,13 +5,12 @@ namespace sdf {
 		: public Control {
 	protected:
 		intptr_t showI = 0;
-		uint32_t timerId = 0;
 	public:
-		Gdi gdi_;
 		std::vector<std::shared_ptr<Bitmap>> imageList_;
 		//间隔时间,毫秒
 		uint32_t interval = 50;
 		bool loop = true;
+		Timer time;
 	
 
 		ImageView() {
@@ -20,9 +19,6 @@ namespace sdf {
 
 		virtual ~ImageView() {
 			//COUT(tt_("gone"));
-			if (timerId > 0) {
-				killTimer(timerId);
-			}
 		}
 
 
@@ -40,7 +36,6 @@ namespace sdf {
 		}
 
 	
-
 		virtual void getContentWH(int32_t& w, int32_t& h) {
 			w = Gdi::GetScreen().GetTextPixel(text).cx;
 			if (w > 0) {
@@ -51,7 +46,6 @@ namespace sdf {
 		virtual void onDraw();
 
 		virtual void doCreate() override {
-
 
 			Control::doCreate();
 
@@ -76,9 +70,6 @@ namespace sdf {
 		///初始化
 		virtual void Init();
 
-		virtual void onTimer(uint32_t) override;
-
-		//virtual bool ControlProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& ret) override;
 
 	};
 

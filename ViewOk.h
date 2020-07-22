@@ -19,22 +19,22 @@ namespace sdf {
                     v.pos.flexX = 2;
                 };
             ui_button
+            {
+                v.pos.flexX = 1;
+                buttonTrans(v, Color::green);
+                v.text = df::lang().ok;
+                v.onClick_ = onOk;
+
+            };
+            ui_button
                 {
                     v.pos.flexX = 1;
                     buttonTrans(v, Color::red);
-                    v.pos.marginRight = 10;
                     v.text = df::lang().cancel;
                     v.onClick_ = onCancel;
 
                 };
-            ui_button
-                {
-                    v.pos.flexX = 1;
-                    buttonTrans(v, Color::green);
-                    v.text = df::lang().ok;
-                    v.onClick_ = onOk;
-
-                };
+           
         }
 
         ~ViewOk() {

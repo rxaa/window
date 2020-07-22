@@ -16,12 +16,12 @@ namespace sdf
 		int32_t vertRemain = 0;
 		int32_t horiPos = 0;
 		int32_t horiRemain = 0;
-		Control * hoverView= nullptr;
+		
 	public:
 
 		ScrollView() {
 			pos.vertical = true;
-			drawBuff_ = new DrawBuffer();
+			drawBuff_ = new DrawBuffer(&gdi_);
 		}
 		virtual ~ScrollView() {
 			if (drawBuff_)
@@ -75,18 +75,20 @@ namespace sdf
 			return vertPos * Control::GlobalFont().GetFontSize();
 		}
 
-		virtual void onRightClick() override ;
-        virtual void onMouseMove(int32_t x,int32_t y) override ;
+		virtual void onMouseMove(int32_t x, int32_t y) override;
 		virtual void onLeave()  override;
 
-
+		//更新在父容器中的位置
+		/*virtual void updateDrawXY() override {
+			 updateHandleXy();
+		}*/
 
 		virtual void onMeasure() override;
 
 		virtual void onDraw() override;
 
 		virtual void Init() override;
-	
+
 
 		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT& ret) override;
 	};

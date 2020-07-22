@@ -39,7 +39,7 @@ namespace sdf {
 					drawX += w + w / 2;
 				}
 
-				drawMember(gdi_, draw);
+				drawMember(draw);
 			}
 
 		}

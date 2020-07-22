@@ -12,6 +12,7 @@ namespace sdf
 		std::function<std::shared_ptr<sdf::View>(std::shared_ptr < Ty>& dat, size_t index)> onCreateView;
 		std::function<void(std::shared_ptr <Ty>& dat, size_t index)> onShowView;
 		ListView() {
+			hasCursor = false;
 		}
 
 		virtual ~ListView() {
@@ -67,9 +68,13 @@ namespace sdf
 			}
 		}
 
-		void clear() {
+		void clear(bool update = true) {
 			removeAllMember();
 			list_.clear();
+
+			if (update) {
+				measureUpdate();
+			}
 		}
 
 		virtual void bindUpdate(bool draw = true) {

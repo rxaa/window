@@ -79,10 +79,10 @@ namespace sdf {
         }
         virtual void onDraw() {
             //COUT(tt_("重绘TextBox"));
-            updateDrawXY();
+            updateHandleXy();
             update();
             DrawBuffer* draw = getDraw();
-            gdi_.DrawTo(draw->buttonBmp_, drawX_, drawY_, pos.w, pos.h);
+            gdi_.DrawTo(draw->buttonBmp_, getDrawX(), getDrawY(), pos.w, pos.h);
         }
     protected:
         Gdi gdi_;
