@@ -32,7 +32,7 @@ namespace sdf {
 
 		friend class LoadAnim;
 
-		//最近一次创建的窗口,用于OnInit
+
 		static HWND currentHandle_;
 		static Window* parentWindow_;
 		static Window* currentWindow_;
@@ -106,7 +106,7 @@ namespace sdf {
 		bool isTop = false;
 		bool isEnable = true;
 		bool hasCursor = false;
-	
+
 	public:
 		std::function<void()> onCreate_;
 		std::function<void()> onBind_;
@@ -200,6 +200,16 @@ namespace sdf {
 				par = par->parent_;
 			}
 			return par;
+		}
+
+		template<typename Derived>
+		static inline std::shared_ptr<Derived> ptr(Derived* ptr) {
+			return std::static_pointer_cast<Derived>(ptr->shared_from_this());
+		}
+
+		template<typename Derived>
+		static inline std::weak_ptr<Derived> weakPtr(Derived* ptr) {
+			return std::weak_ptr(std::static_pointer_cast<Derived>(ptr->shared_from_this()));
 		}
 
 		template<typename Derived>
@@ -452,7 +462,6 @@ namespace sdf {
 			return (int) ::SendMessage(handle_, EM_LINEINDEX, nLine, 0);
 		}
 
-
 		//*******************************************
 		// Summary : 获取字符位置nStartChar所在行的长度
 		// Parameter - int nStartChar : 字符位置(-1获取光标所在行)
@@ -613,7 +622,7 @@ namespace sdf {
 		* @param time 毫秒时间
 		*/
 		Timer setTimer(uint32_t time, std::function<void()>&& func);
-	
+
 		///执行measure, 创建窗口句柄, 初始化所有子view
 		virtual void Init();
 

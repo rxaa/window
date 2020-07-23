@@ -5,8 +5,8 @@ namespace sdf {
 		: public Control {
 	protected:
 		int16_t startAngle = 0;
-		int16_t arcLen = 6;
-		int16_t arcInc = 3;
+		int16_t arcLen = 0;
+		int16_t arcInc = 0;
 
 	public:
 		float dotSize = 0;
@@ -15,13 +15,20 @@ namespace sdf {
 		bool showAnim = true;
 		Timer timer;
 
-		LoadAnim() {
+		void valInit() {
+			startAngle = 0;
+			arcLen = 6;
+			arcInc = 3;
+		}
 
+		LoadAnim() {
+			valInit();
 		}
 
 		void enableAnim(bool anim) {
 			if (anim && !timer) {
-				timer = setTimer(animInterval_, [this] {onTimer(); });
+				valInit();
+				timer = setTimer(animInterval_, [this] { onTimer(); });
 			}
 			showAnim = anim;
 			if (!anim) {

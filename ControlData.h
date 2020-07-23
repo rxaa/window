@@ -227,8 +227,8 @@ namespace sdf {
 		}
 
 		void textAlignStart() {
-			AlignType textAlignX = AlignType::start;
-			AlignType textAlignY = AlignType::start;
+			textAlignX = AlignType::start;
+			textAlignY = AlignType::start;
 		}
 
 
