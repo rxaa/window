@@ -6,12 +6,9 @@ namespace sdf {
 	protected:
 		intptr_t showI = 0;
 	public:
-		std::vector<std::shared_ptr<Bitmap>> imageList_;
-		//间隔时间,毫秒
-		uint32_t interval = 50;
-		bool loop = true;
-		Timer time;
-	
+		//std::vector<std::shared_ptr<Bitmap>> imageList_;
+
+		std::shared_ptr<Bitmap> img_;
 
 		ImageView() {
 
@@ -22,17 +19,17 @@ namespace sdf {
 		}
 
 
-		template <class T, class ...Args>
+		/*template <class T, class ...Args>
 		void add(T head, Args... rest) {
 			imageList_.push_back(head);
 			add(rest...);
 		}
 		void add() {
 
-		}
+		}*/
+
 		void setBitmap(const std::shared_ptr<Bitmap> & head) {
-			imageList_.clear();
-			imageList_.push_back(head);
+			img_ = head;
 		}
 
 	
@@ -49,8 +46,8 @@ namespace sdf {
 
 			Control::doCreate();
 
-			if (imageList_.size() > 0) {
-				auto& img = *imageList_[0];
+			if (img_) {
+				auto& img = *img_;
 				if (pos.w > 0 && pos.h < 0) {
 					pos.h = pos.w * img.GetHeight() / img.GetWidth();
 				}

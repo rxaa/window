@@ -11,7 +11,7 @@ namespace sdf {
 
 		Brush backBrush_;
 
-		
+
 		//自我引用, onClose时销毁
 		std::shared_ptr<Window> ptr_;
 
@@ -21,7 +21,7 @@ namespace sdf {
 		static int mouseX_, mouseY_;
 		static const int32_t taskMessage_ = WM_USER + 8274;
 
-
+		df::CC winClassName;
 
 		//构造
 		Window(void) : v(*this) {
@@ -60,15 +60,15 @@ namespace sdf {
 
 		Gdi gdi_;
 		//标题边框大小
-		int16_t titleHeight_ = 0;
+		int32_t titleHeight_ = 0;
 
 		//左边框大小
-		int16_t borderSize_ = 0;
+		int32_t borderSize_ = 0;
 
 
-		int16_t GetTitleHeight() const { return titleHeight_; }
+		int32_t GetTitleHeight() const { return titleHeight_; }
 
-		int16_t GetBorderSize() const { return borderSize_; }
+		int32_t GetBorderSize() const { return borderSize_; }
 
 		uint32_t getExStyle() {
 			uint32_t styEX = 0;
@@ -92,7 +92,6 @@ namespace sdf {
 		}
 
 
-
 		static Font& SetGlobalFont(Font& f) {
 			GlobalFont().SetFont(f);
 			Gdi::GetScreen().setFont(f);
@@ -103,47 +102,6 @@ namespace sdf {
 
 		static void runOnUi(std::function<void()>&& func);
 
-		static void scalePos(ControlPos& pos, bool xy = true) {
-			if (pos.scaleMeasured)
-				return;
-
-			pos.scaleMeasured = true;
-			auto sca = getScale();
-			if (xy) {
-				pos.x = (int32_t)((float)pos.x * sca);
-				pos.y = (int32_t)((float)pos.y * sca);
-			}
-
-			if (pos.w > 0)
-				pos.w = (int32_t)((float)pos.w * sca);
-			if (pos.h > 0)
-				pos.h = (int32_t)((float)pos.h * sca);
-
-			if (pos.maxH > 0)
-				pos.maxH = (int32_t)((float)pos.maxH * sca);
-
-			if (pos.maxW > 0)
-				pos.maxW = (int32_t)((float)pos.maxW * sca);
-
-			pos.paddingLeft = (int32_t)((float)pos.paddingLeft * sca);
-			pos.paddingTop = (int32_t)((float)pos.paddingTop * sca);
-			pos.paddingRight = (int32_t)((float)pos.paddingRight * sca);
-			pos.paddingBottom = (int32_t)((float)pos.paddingBottom * sca);
-
-			pos.marginLeft = (int32_t)((float)pos.marginLeft * sca);
-			pos.marginTop = (int32_t)((float)pos.marginTop * sca);
-			pos.marginRight = (int32_t)((float)pos.marginRight * sca);
-			pos.marginBottom = (int32_t)((float)pos.marginBottom * sca);
-		}
-
-		static void scaleStyle(ControlStyle& sty) {
-			auto sca = getScale();
-			sty.shadowSize = (int32_t)((float)sty.shadowSize * sca);
-			sty.borderTop = (int16_t)((float)sty.borderTop * sca);
-			sty.borderRight = (int16_t)((float)sty.borderRight * sca);
-			sty.borderLeft = (int16_t)((float)sty.borderLeft * sca);
-			sty.borderBottom = (int16_t)((float)sty.borderBottom * sca);
-		}
 
 		inline HFONT GetFont() {
 			return GetFont(handle_);
@@ -157,7 +115,6 @@ namespace sdf {
 		inline void setIcon(int id) {
 			::SendMessage(handle_, WM_SETICON, TRUE, (LPARAM)LoadIcon(Control::progInstance_, MAKEINTRESOURCE(id)));
 		}
-
 
 
 		/// <summary>
@@ -216,12 +173,9 @@ namespace sdf {
 		void run(bool show = true);
 
 
-
 		void AdjustLayout();
 
-		virtual void onDraw() override {
-
-		}
+		virtual void onDraw() override;
 
 		//获取屏幕高宽实际像素
 		static int GetScreenWidth() {
@@ -262,6 +216,10 @@ namespace sdf {
 
 		}
 
+		virtual void onExitResize() {
+
+		}
+
 		virtual void onActive() {
 
 		}
@@ -279,10 +237,10 @@ namespace sdf {
 
 		}
 
-        //移动事件
-        virtual void onMove(int32_t x,int32_t y) {
+		//移动事件
+		virtual void onMove(int32_t x, int32_t y) {
 
-        }
+		}
 
 		//消息循环
 		static void MessageLoop();
@@ -296,8 +254,16 @@ namespace sdf {
 			pon.x = pos.x;
 			pon.y = pos.y;
 			::ScreenToClient(handle_, &pon);
-			titleHeight_ = (int16_t)std::abs(pon.y);
-			borderSize_ = (int16_t)std::abs(pon.x);
+			titleHeight_ = (int32_t)std::abs(pon.y);
+			borderSize_ = (int32_t)std::abs(pon.x);
+		}
+
+		int32_t getBorderW() {
+			return borderSize_ * 2;
+		}
+
+		int32_t getBorderH() {
+			return titleHeight_ + borderSize_;
 		}
 
 	protected:

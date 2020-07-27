@@ -68,6 +68,7 @@ namespace sdf
 			return i;
 		}
 
+		virtual void onMouseMove(int32_t x, int32_t y) override;
 
 		//获取index的字符串内容
 		df::String getIndexText(int Index)
@@ -87,12 +88,17 @@ namespace sdf
 
 		}
 		virtual void onDraw() {
-			COUT(tt_("onDraw ComBox"));
-			updateHandleXy();
-			update();
-			DrawBuffer* draw = getDraw();
-			gdi_.DrawTo(draw->buttonBmp_, getDrawX(), getDrawY(), pos.w, pos.h);
+			if (pos.w > 0 && pos.h > 0) {
+				updateDrawXY();
+
+				DrawBuffer* draw = getDraw();
+
+				drawStyle(draw, style, parent_->needDraw, false);
+				//update();
+				updateHandleXy(gdi_, draw);
+			}
 		}
+		virtual void onMeasure() override;
 	protected:
 		Gdi gdi_;
 		std::unique_ptr<std::vector<String>> initList;
@@ -106,7 +112,7 @@ namespace sdf
 
 
 }
-#define ui_onselect_change v.onSelectChange_ = [&]()
+#define ui_onselect_change v.onSelectChange_ = [=,&v=v]()
 
 #define ui_combox ui_control(sdf::ComBox) 
 

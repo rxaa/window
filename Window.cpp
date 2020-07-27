@@ -33,6 +33,7 @@ ULONG_PTR sdf::Gdip::gdiplusToken_ = 0;
 
 Gdiplus::GdiplusStartupInput sdf::Gdip::gdiplusStartupInput_ = 0;
 
+float sdf::Control::scale_ = 1;
 
 sdf::Font::Font(long size, df::CC name) {
 	rawSize = size;
@@ -178,7 +179,7 @@ void sdf::Control::bindUpdate(bool draw) {
 	if (onBind_) {
 		onBind_();
 		for (auto& sub : memberList_) {
-			sub->bindUpdate(draw);
+			sub->bindUpdate(false);
 		}
 
 		if (draw)
@@ -226,7 +227,7 @@ void sdf::Control::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw)
 	}
 }
 
-void sdf::Control::doLeave() {
+void sdf::Control::doLeave(bool doEvent) {
 	/*auto ho = hoverGlobal_;
 	while (ho) {
 		ho->hoverView = nullptr;
@@ -241,7 +242,8 @@ void sdf::Control::doLeave() {
 
 	while (ho) {
 		ho->isHover = false;
-		ho->onLeave();
+		if (doEvent)
+			ho->onLeave();
 		auto oldHo = ho;
 		ho = ho->hoverView;
 		oldHo->hoverView = nullptr;
@@ -275,9 +277,8 @@ void sdf::Control::onMouseMove(int32_t x, int32_t y) {
 	int32_t vy = y + vert;
 
 	//倒序
-	for (auto v = memberList_.rbegin(); v != memberList_.rend(); ++v)
-	{
-		
+	for (auto v = memberList_.rbegin(); v != memberList_.rend(); ++v) {
+
 		if ((**v).hited(vX, vy)) {
 
 			if (hoverView != (*v).get()) {
@@ -303,7 +304,6 @@ void sdf::Control::onMeasure() {
 	measureX_ = 0;
 	measureY_ = 0;
 
-
 	if (pos.absolute) {
 
 	}
@@ -321,7 +321,7 @@ void sdf::Control::onMeasure() {
 	int32_t flexWsum = 0, flexHsum = 0;
 	bool isRight = false;
 	//计算所有邻居flex
-	if (pos.flexX > 0 || pos.flexY > 0) {
+	if ((pos.flexX > 0 && !parent_->pos.vertical) || (pos.flexY > 0 && parent_->pos.vertical)) {
 		int32_t oldMx = parent_->measureX_, oldMy = parent_->measureY_;
 		for (auto& sub : parent_->memberList_) {
 			if (sub->pos.absolute)
@@ -421,9 +421,6 @@ void sdf::Control::onMeasure() {
 	/*if (drawX_ != showX_ || drawY_ != showY_ || pos.w != showW_ || pos.h != showH_)
 		setPosAndHW(drawX_, drawY_, pos.w, pos.h);*/
 
-	if (pos.w != showW_ || pos.h != showH_)
-		setHW(pos.w, pos.h);
-
 	if (pos.absolute) {
 	}
 	else {
@@ -447,15 +444,15 @@ void sdf::Control::UpdateWinRect() {
 	GetClientRect(handle_, &rect);
 
 	if (pos.h >= 0)
-		pos.h = (int16_t)(rect.bottom);
+		pos.h = (int32_t)(rect.bottom);
 
 	if (pos.w >= 0)
-		pos.w = (int16_t)(rect.right);
+		pos.w = (int32_t)(rect.right);
 
 
 	::GetWindowRect(handle_, &rect);
-	pos.x = (int16_t)rect.left;
-	pos.y = (int16_t)rect.top;
+	pos.x = (int32_t)rect.left;
+	pos.y = (int32_t)rect.top;
 
 	if (parentWindow_) {
 		pos.x -= parentWindow_->pos.x + parentWindow_->borderSize_;
@@ -463,14 +460,18 @@ void sdf::Control::UpdateWinRect() {
 	}
 }
 
-inline BOOL sdf::Control::setPos(int32_t x, int32_t y) {
+inline BOOL sdf::Control::setPos(int32_t x, int32_t y, bool draw) {
 	showX_ = x;
 	showY_ = y;
 	//SetWindowPos很慢
-	if (handle_)
-		return ::SetWindowPos(handle_, 0, x, y, 0, 0,
-			SWP_NOSIZE | SWP_NOZORDER | SWP_DEFERERASE | SWP_NOOWNERZORDER | SWP_NOACTIVATE |
-			SWP_NOCOPYBITS | SWP_NOREDRAW);
+	if (handle_) {
+		uint32_t sty = SWP_NOSIZE | SWP_NOZORDER | SWP_DEFERERASE | SWP_NOOWNERZORDER | SWP_NOACTIVATE |
+			SWP_NOCOPYBITS;
+		if (!draw) {
+			sty |= SWP_NOREDRAW;
+		}
+		return ::SetWindowPos(handle_, 0, x, y, 0, 0, sty);
+	}
 	return false;
 }
 
@@ -484,8 +485,7 @@ BOOL sdf::Control::setPosAndHW(int32_t x, int32_t y, int32_t w, int32_t h) {
 	return false;
 }
 
-Timer sdf::Control::setTimer(uint32_t time, std::function<void()>&& func)
-{
+Timer sdf::Control::setTimer(uint32_t time, std::function<void()>&& func) {
 	return Timer::set(this, time, std::move(func));
 }
 
@@ -522,9 +522,11 @@ void sdf::Control::doCreate() {
 	for (auto& con : memberList_) {
 		con->doCreate();
 	}
-	Window::scalePos(pos);
-
-
+	scalePos(pos);
+	scaleStyle(style);
+	scaleStyle(stylePress);
+	scaleStyle(styleHover);
+	scaleStyle(styleDisable);
 }
 
 
@@ -544,7 +546,8 @@ void sdf::Control::adjustRecur(sdf::Control* cont) {
 	cont->measureY_ = 0;
 	for (auto& control : cont->memberList_) {
 		control->onMeasure();
-		adjustRecur(control.get());
+		if (!control->pos.wrapX && !control->pos.wrapY)
+			adjustRecur(control.get());
 	}
 }
 
@@ -555,15 +558,18 @@ void sdf::Control::updateDrawXY() {
 	drawY_ = parent_->drawY_ - vp + pos.y;
 }
 
-void sdf::Control::updateHandleXy()
-{
-	drawX_ = 0;
-	drawY_ = 0;
-	int32_t x = getDrawX();
-	int32_t y = getDrawY();
+void sdf::Control::updateHandleXy(Gdi& gdi, DrawBuffer* draw) {
+	int32_t x = getShowX();
+	int32_t y = getShowY();
 
 	if (x != showX_ || y != showY_) {
-		setPos(x, y);
+		setPos(x, y, true);
+	}
+	if (draw)
+		gdi.DrawTo(draw->buttonBmp_, x, y, getWidthNoBorder(), getHeighNoBorder());
+
+	if (parent_->needDraw && draw) {
+		draw->draw(drawX_, drawY_, pos.w, pos.h);
 	}
 }
 
@@ -859,15 +865,20 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 			}
 			break;
 		}
+		case WM_EXITSIZEMOVE: {
+			//COUT(tt_("WM_EXITSIZEMOVE"));
+			winP->onExitResize();
+			break;
+		}
 		case WM_SIZE: {
 			int32_t w = LOWORD(lParam);
 			int32_t h = HIWORD(lParam);
-			//if (w != winP->pos.w || h != winP->pos.h)
 			{
 				winP->pos.w = w;
 				winP->pos.h = h;
 				winP->onResize();
 				winP->AdjustLayout();
+				winP->update();
 			}
 			break;
 		}
@@ -880,19 +891,14 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 
 
 		case WM_PAINT: {
-			for (auto& sub : winP->memberList_) {
-				sub->onDraw();
-			}
 
-			//COUT(t_t("dc:")<<winP->gdi_.GetDc()<<t_t(" - ")<<dd);
+			winP->onDraw();
 			winP->onPaint();
-			auto d = winP->getDraw();
-			if (d) {
-				PAINTSTRUCT ps = { 0 };
-				HDC dd = BeginPaint(hDlg, &ps);
-				d->buttonBmp_.DrawTo(dd);
-				EndPaint(hDlg, &ps);
-			}
+			PAINTSTRUCT ps = { 0 };
+			HDC dd = BeginPaint(winP->handle_, &ps);
+			//COUT(tt_("dc:") << (int*)winP->gdi_.GetDc() << tt_(" - ") << (int*)dd);
+			winP->drawBuff_->buttonBmp_.DrawTo(winP->gdi_.GetDc());
+			EndPaint(winP->handle_, &ps);
 			break;
 		}
 					 //case WM_ERASEBKGND:
@@ -971,10 +977,6 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 
 	onCreate();
 
-	TCHAR className[18] = tt_("sdf");
-	for (int i = 0; i < 14; i++) {
-		className[i + 3] = std::rand() % 26 + 'a';
-	}
 
 	WNDCLASS wndclass = { 0 };
 	wndclass.style = CS_VREDRAW | CS_HREDRAW;
@@ -993,7 +995,17 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 	}
 
 	wndclass.lpszMenuName = NULL;
-	wndclass.lpszClassName = className;
+
+	TCHAR className[18] = tt_("sdfWin");
+	if (winClassName.length() > 0)
+		wndclass.lpszClassName = winClassName.c_str();
+	else {
+		for (int i = 0; i < 14; i++) {
+			className[i + 3] = std::rand() % 26 + 'a';
+		}
+		wndclass.lpszClassName = className;
+	}
+
 	if (!RegisterClass(&wndclass)) {
 		DF_ERR(tcc_("RegisterClass failed"));
 		return;
@@ -1033,7 +1045,7 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 	}
 
 	handle_ = CreateWindowEx(styEX,
-		className,
+		wndclass.lpszClassName,
 		text.c_str(),
 		sty,
 		pos.x,
@@ -1076,6 +1088,8 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 		drawBuff_->newBmp(pos.w, pos.h);
 	}
 
+	Control::controlOpenList_.push_back(this);
+
 	InitWinData();
 
 	::SendMessage(handle_, WM_SETFONT, (WPARAM)Window::GlobalFont().GetFont(), TRUE);
@@ -1086,14 +1100,15 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 		if (pos.h < 0)
 			measureWrapY(0);
 		setPosXY();
-		if (pos.x + pos.w + borderSize_ > Window::GetScreenWidth()) {
-			pos.x = Window::GetScreenWidth() - pos.w - borderSize_;
+		if (pos.x + pos.w + getBorderW() > Window::GetScreenWidth()) {
+			pos.x = Window::GetScreenWidth() - pos.w - getBorderW();
 		}
-		if (pos.y + pos.h + borderSize_ > Window::GetScreenHeight()) {
-			pos.y = Window::GetScreenHeight() - pos.h - borderSize_;
+		if (pos.y + pos.h + getBorderH() > Window::GetScreenHeight()) {
+			pos.y = Window::GetScreenHeight() - pos.h - getBorderH();
 		}
 
-		::SetWindowPos(handle_, 0, pos.x, pos.y, pos.w + borderSize_ * 2, pos.h + titleHeight_ + borderSize_,
+		::SetWindowPos(handle_, 0, pos.x, pos.y,
+			pos.w + getBorderW(), pos.h + getBorderH(),
 			SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
 
 		if (pos.w > 0 && pos.h > 0) {
@@ -1106,7 +1121,6 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 	::UpdateWindow(handle_);
 	currentHandle_ = oldHandle;
 	//currentWindow_=oldWindow;
-	Control::controlOpenList_.push_back(this);
 }
 
 void sdf::Window::onInit() {
@@ -1176,8 +1190,8 @@ float sdf::Window::getScale() {
 	auto res = (float)GetDeviceCaps(Gdi::GetScreen().GetDc(), LOGPIXELSX) / (float)96.0;
 	if (res < 1)
 		res = 1;
+	Control::scale_ = res;
 	return res;
-
 }
 
 void sdf::Window::runOnUi(std::function<void()>&& func) {
@@ -1207,6 +1221,15 @@ void sdf::Window::AdjustLayout() {
 	Control::adjustRecur(this);
 
 	//drawMember(gdi_, getDraw());
+}
+
+void sdf::Window::onDraw() {
+	auto draw = getDraw();
+	bool drawSub = drawStyle(draw, style, false, false);
+
+	if (drawSub) {
+		drawMember(draw);
+	}
 }
 
 struct PopMsgStruct {
@@ -1373,10 +1396,10 @@ bool sdf::Control::showOverflow() {
 
 	if (
 		pos.x - hori + w * 2 < 0 ||
-		pos.x - hori - w > parent_->GetWidth() + parent_->pos.paddingLeft + parent_->pos.paddingRight
+		pos.x - hori - 2 > parent_->GetWidth() + parent_->pos.paddingLeft + parent_->pos.paddingRight
 		||
 		pos.y - vert + h * 2 < 0 ||
-		pos.y - vert - h > parent_->GetHeight() + parent_->pos.paddingTop + parent_->pos.paddingBottom) {
+		pos.y - vert - 2 > parent_->GetHeight() + parent_->pos.paddingTop + parent_->pos.paddingBottom) {
 		return true;
 	}
 
@@ -1393,11 +1416,17 @@ sdf::Font& sdf::Control::GlobalFont() {
 	return *f;
 }
 
+void sdf::Control::initInst(HINSTANCE inst) {
+	::SetProcessDPIAware();
+	progInstance_ = inst;
+	Window::getScale();
+}
+
 
 void sdf::Control::ReleaseUserData() {
 	if (handle_) {
 		::SetWindowLongPtr(handle_, GWLP_USERDATA, 0);
-		if (parent_ == 0 && !isTop) {
+		if (!isTop) {
 			::DestroyWindow(handle_);
 		}
 		handle_ = 0;
@@ -1462,6 +1491,10 @@ void sdf::ScrollView::setHoriScrollInfo(int max, int page) {
 void sdf::ScrollView::onMeasure() {
 
 	Control::onMeasure();
+
+	if (pos.controlW != showW_ || pos.controlH != showH_)
+		setHW(pos.controlW, pos.controlH);
+
 	auto fontSize = Control::GlobalFont().GetFontSize();
 
 	measureX_ = 0;
@@ -1474,16 +1507,17 @@ void sdf::ScrollView::onMeasure() {
 	for (auto& sub : memberList_) {
 		sub->onMeasure();
 		if (pos.vertical) {
-			contentH += sub->showH_ + sub->pos.marginTop + sub->pos.marginBottom;
-			if (sub->showW_ > contentW) {
-				contentW = sub->showW_;
+
+			contentH += sub->pos.controlH + sub->pos.marginTop + sub->pos.marginBottom;
+			if (sub->pos.controlW > contentW) {
+				contentW = sub->pos.controlW;
 				flexX = sub->pos.flexX > 0;
 			}
 		}
 		else {
-			contentW += sub->showW_ + sub->pos.marginLeft + sub->pos.marginRight;
-			if (sub->showH_ > contentH) {
-				contentH = sub->showH_;
+			contentW += sub->pos.controlW + sub->pos.marginLeft + sub->pos.marginRight;
+			if (sub->pos.controlH > contentH) {
+				contentH = sub->pos.controlH;
 				flexY = sub->pos.flexY > 0;
 			}
 		}
@@ -1553,8 +1587,13 @@ void sdf::ScrollView::onDraw() {
 	if (!parent_)
 		return;
 
-
-	updateHandleXy();
+	drawX_ = 0;
+	drawY_ = 0;
+	int32_t x = getDrawX();
+	int32_t y = getDrawY();
+	if (x != showX_ || y != showY_) {
+		setPos(x, y, false);
+	}
 
 	DrawBuffer* draw = getDraw();
 
@@ -1594,7 +1633,7 @@ void sdf::ScrollView::onDraw() {
 		if (draw) {
 			DrawBuffer* drawParent = parent_->getDraw();
 			if (drawParent)
-				drawParent->buttonBmp_.DrawFrom(draw->buttonBmp_, getDrawX(), getDrawY(), pos.w, pos.h, drawX_, drawY_);
+				drawParent->buttonBmp_.DrawFrom(draw->buttonBmp_, x, y, pos.w, pos.h, drawX_, drawY_);
 			if (parent_->needDraw) {
 				gdi_.DrawFrom(draw->buttonBmp_, 0, 0, pos.w, pos.h, drawX_, drawY_);
 			}
@@ -1611,10 +1650,10 @@ void sdf::ScrollView::Init() {
 		tt_("BUTTON"),  // Predefined class; Unicode assumed
 		text.c_str(),      // Button text
 		WS_VISIBLE | WS_CHILD | BS_OWNERDRAW | WS_CLIPCHILDREN,  // Styles  |BS_OWNERDRAW
-		pos.x,         // x position
-		pos.y,         // y position
-		showW_,        // Button width
-		showH_,        // Button height
+		getDrawX(),         // x position
+		getDrawY(),         // y position
+		pos.controlW,        // Button width
+		pos.controlH,        // Button height
 		getParentHandle(),     // Parent window
 		NULL,       // No menu.
 		Control::progInstance_,
@@ -1702,7 +1741,6 @@ bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPa
 			break;
 		case SB_PAGEUP:
 			si.nPos -= si.nPage;
-
 			break;
 		case SB_PAGEDOWN:
 			si.nPos += si.nPage;
@@ -1749,7 +1787,6 @@ bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPa
 			break;
 		case SB_PAGEUP:
 			si.nPos -= si.nPage;
-
 			break;
 		case SB_PAGEDOWN:
 			si.nPos += si.nPage;
@@ -1787,9 +1824,8 @@ void ScrollView::onMouseMove(int32_t x, int32_t y) {
 
 void ScrollView::onLeave() {
 	//COUT(tt_("ScrollView onLeave"))
-		//doLeave();
+	//doLeave();
 }
-
 
 
 void sdf::View::Init() {
@@ -1817,8 +1853,8 @@ void sdf::ImageView::onDraw() {
 		int h = GetHeight() - pos.paddingTop - pos.paddingBottom;
 
 		Gdiplus::Rect dest(drawX_ + pos.paddingLeft, drawY_ + pos.paddingTop, w, h);
-		if (showI >= 0 && showI < (intptr_t)imageList_.size()) {
-			draw->graph_->DrawImage(imageList_[showI]->getImg(), dest);
+		if (img_) {
+			draw->graph_->DrawImage(img_->getImg(), dest);
 		}
 		//COUT(tt_("image ondraw"));
 
@@ -1833,15 +1869,15 @@ void sdf::ImageView::Init() {
 	Control::Init();
 
 	initAllSub();
-	if (imageList_.size() > 1) {
-		time = setTimer(interval, [this]
-			{
-				showI += 1;
-				if (showI >= (intptr_t)imageList_.size())
-					showI = 0;
-				onDraw();
-			});
-	}
+	/* if (imageList_.size() > 1) {
+		 time = setTimer(interval, [this]
+		 {
+			 showI += 1;
+			 if (showI >= (intptr_t) imageList_.size())
+				 showI = 0;
+			 onDraw();
+		 });
+	 }*/
 }
 
 
@@ -1884,7 +1920,7 @@ void sdf::LoadAnim::onDraw() {
 
 void sdf::LoadAnim::doCreate() {
 	Control::doCreate();
-	dotSize = dotSize * Window::getScale();
+	dotSize = dotSize * scale_;
 }
 
 void sdf::LoadAnim::Init() {
@@ -1938,7 +1974,8 @@ void sdf::Button::Init() {
 
 void sdf::DrawBuffer::newBmp(int32_t w, int32_t h) {
 	auto oldBmp = std::move(buttonBmp_);
-	buttonBmpBuf_ = buttonBmp_.CreateDib(max(w, oldBmp.GetWidth()), max(h, oldBmp.GetHeight()));
+	COUT(tt_("new bmp:") << max(w, oldBmp.GetWidth()) << tt_(" - ") << max(h, oldBmp.GetHeight()));
+	buttonBmpBuf_ = (uint32_t*)buttonBmp_.CreateDib(max(w, oldBmp.GetWidth()), max(h, oldBmp.GetHeight()));
 	buttonBmp_.SetTextBackColor();
 	buttonBmp_.setFont(Control::GlobalFont());
 
@@ -1966,7 +2003,15 @@ void sdf::Control::removeOpenControl(Control* cont) {
 	}
 }
 
-bool sdf::Control::drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentBack) {
+Window* sdf::Control::getWindow() {
+	Control* top = getTopParent();
+	if (top) {
+		return dynamic_cast<Window*>(top);
+	}
+	return nullptr;
+}
+
+bool sdf::Control::drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentBack, bool brawText) {
 	if (!draw)
 		return false;
 
@@ -1986,7 +2031,7 @@ bool sdf::Control::drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentB
 	if (!draw->buttonBmpBuf_ || draw->buttonBmp_.GetWidth() < drawX + w || draw->buttonBmp_.GetHeight() < drawY + h) {
 		draw->newBmp(drawX + w, drawY + h);
 	}
-	int32_t* buf = (int32_t*)draw->buttonBmpBuf_;
+	uint32_t* buf = draw->buttonBmpBuf_;
 	if (buf == nullptr)
 		return false;
 
@@ -2003,7 +2048,7 @@ bool sdf::Control::drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentB
 
 		if (style.radius == 360) {
 
-			if (parent_->needDraw)
+			if (parent_ && parent_->needDraw)
 				drawParentBack(draw);
 			Gdiplus::SolidBrush brush(Gdiplus::Color((Gdiplus::ARGB)style.backColor));
 			Gdiplus::Rect ellipseRect2(drawX_, drawY_, w, h);
@@ -2013,13 +2058,13 @@ bool sdf::Control::drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentB
 		else {
 			//矩形背景
 			//df::TickClock([&] {
-			drawRect((uint32_t*)buf, bufW, drawX, drawY, w, h, style.backColor);
+			drawRect(buf, bufW, drawX, drawY, w, h, style.backColor);
 			//}, 1);
 
 		}
 
 	}
-	else if (!style.backImage && parentBack) {
+	else if (!style.backImage && parentBack && parent_) {
 		drawParentBack(draw);
 	}
 
@@ -2045,8 +2090,8 @@ bool sdf::Control::drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentB
 				buf[y + i * bufW] = col[shadowLen - 1 - (y - drawX)];
 			}
 		}
-		rect.top += 2;
-		rect.left += 2;
+		rect.top += (uint32_t)(2 * scale_);
+		rect.left += (uint32_t)(2 * scale_);
 	}
 
 	if (style.borderTop > 0) {
@@ -2124,10 +2169,13 @@ bool sdf::Control::drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentB
 
 	}
 
-	if (text.length() > 0) {
+	if (brawText && text.length() > 0) {
 		draw->buttonBmp_.SetTextColor(style.color);
 		if (style.font.hasFont()) {
 			draw->buttonBmp_.setFont(Font::getFont(style.font));
+		}
+		else if (this->style.font.hasFont()) {
+			draw->buttonBmp_.setFont(Font::getFont(this->style.font));
 		}
 		else {
 			draw->buttonBmp_.setFont(Control::GlobalFont());
@@ -2158,13 +2206,31 @@ void sdf::Control::drawRect(uint32_t* buf, int32_t bufW, int32_t x, int32_t y, i
 	}
 }
 
+void recurRemoveHandle(Control* con) {
+	if (con->GetHandle()) {
+		con->setHW(0, 0);
+		//con->hide();
+		::SetParent(con->GetHandle(), 0);
+		return;
+	}
+
+	for (auto& c : con->memberList_) {
+		recurRemoveHandle(c.get());
+	}
+}
+
 void sdf::Control::_removeFromParent(bool remove) {
 	auto par = parent_;
+
+	if (parent_ && parent_->hoverView == this) {
+		parent_->doLeave(false);
+	}
+	else
+		doLeave(false);
+
+
 	if (par) {
-		if (handle_) {
-			setHW(0, 0);
-			::SetParent(handle_, 0);
-		}
+		recurRemoveHandle(this);
 		//hide();
 		parent_ = 0;
 		if (remove) {
@@ -2179,19 +2245,37 @@ void sdf::Control::_removeFromParent(bool remove) {
 	}
 }
 
-void sdf::Control::addMember(const std::shared_ptr<Control>& con) {
+void recurSetHandle(const std::shared_ptr<Control>& con, HWND handl) {
+	if (con->GetHandle()) {
+		::SetParent(con->GetHandle(), handl);
+		//con->show();
+		return;
+	}
+	for (auto& c : con->memberList_) {
+		recurSetHandle(c, handl);
+	}
+}
+
+void sdf::Control::addMember(const std::shared_ptr<Control>& con, bool update) {
 	DF_ASSERT(con->parent_ == nullptr);
 	con->parent_ = this;
 	memberList_.push_back(con);
 
 	if (inited) {
 		if (!con->inited) {
+			measureX_ = 0;
+			measureY_ = 0;
 			con->doCreate();
 			con->Init();
 		}
 		else {
-			if (con->handle_ && handle_)
-				::SetParent(con->handle_, handle_);
+			auto handl = getParentHandle();
+			if (handl)
+				recurSetHandle(con, handl);
+		}
+
+		if (update) {
+			measureUpdate();
 		}
 	}
 
@@ -2214,12 +2298,20 @@ void sdf::Button::onDraw() {
 	else if (isDisable) {
 		drawSub = drawStyle(draw, styleDisable, parent_->needDraw);
 	}
+	else if (isCheck) {
+		if (isHover) {
+			auto oldBack = styleCheck.backColor;
+			styleCheck.backColor = styleHover.backColor;
+			drawSub = drawStyle(draw, styleCheck, parent_->needDraw);
+			styleCheck.backColor = oldBack;
+		}
+		else
+			drawSub = drawStyle(draw, styleCheck, parent_->needDraw);
+	}
 	else if (isHover) {
 		drawSub = drawStyle(draw, styleHover, parent_->needDraw);
 	}
-	else if (isCheck) {
-		drawSub = drawStyle(draw, styleCheck, parent_->needDraw);
-	}
+
 	else {
 		drawSub = drawStyle(draw, style, parent_->needDraw);
 	}
@@ -2240,21 +2332,92 @@ void sdf::Button::onDraw() {
 
 ////////////////////////////////////TextBox//////////////////////////////////////
 
+void sdf::Control::fixPos() {
+	if (!parent_)
+		return;
+
+	Control* pare = parent_;
+
+	int32_t x = style.borderLeft + pos.paddingLeft + pos.x;
+	int32_t y = style.borderTop + pos.paddingTop + pos.y;
+
+	do {
+
+		ScrollView* sv = dynamic_cast<ScrollView*>(pare);
+		if (sv) {
+			x = x - sv->getHoriPos();
+			y = y - sv->getVertPos();
+			if (x != showX_ || y != showY_) {
+				setPos(x, y, false);
+			}
+			return;
+		}
+		else {
+			x += pare->pos.x;
+			y += pare->pos.y;
+		}
+
+	} while (pare = pare->getParent());
+
+}
+
+void sdf::TextBox::onMeasure() {
+	Control::onMeasure();
+	auto wNo = getWidthNoBorder();
+	auto hNo = getHeighNoBorder();
+	if (wNo != showW_ || hNo != showH_)
+		setHW(wNo, hNo);
+}
+
+void sdf::TextBox::onMouseMove(int32_t x, int32_t y) {
+	/*int32_t xx = getShowX();
+	int32_t yy = getShowY();
+
+	if (xx != showX_ || yy != showY_) {
+		setPos(xx, yy, false);
+	}*/
+
+	doParentMove();
+	Control::onMouseMove(x, y);
+}
+
+void sdf::TextBox::onDraw() {
+	//COUT(tt_("重绘TextBox"));
+	if (pos.w > 0 && pos.h > 0) {
+		updateDrawXY();
+
+		DrawBuffer* draw = getDraw();
+		if (focused)
+			drawStyle(draw, styleFocus, parent_->needDraw, false);
+		else
+			drawStyle(draw, style, parent_->needDraw, false);
+
+		//update();
+		updateHandleXy(gdi_, draw);
+	}
+}
+
+
 void sdf::TextBox::Init() {
 	onMeasure();
 
 	DWORD sty = WS_TABSTOP | WS_CHILD | WS_VISIBLE |
-		ES_LEFT | WS_BORDER;
+		ES_LEFT;
 
 	if (!isEnable) {
 		sty |= WS_DISABLED;
 	}
 	if (mutiLine) {
-		sty |= ES_MULTILINE | WS_VSCROLL | ES_AUTOVSCROLL;
+		sty |= ES_MULTILINE | ES_AUTOVSCROLL;
 	}
 	else {
 		sty |= ES_AUTOHSCROLL;
 	}
+
+	if (showVScroll) {
+		sty |= WS_VSCROLL;
+	}
+
 	if (onlyNumber) {
 		sty |= ES_NUMBER;
 	}
@@ -2264,17 +2427,17 @@ void sdf::TextBox::Init() {
 	if (password) {
 		sty |= ES_PASSWORD;
 	}
-
+	auto y = getShowY();
 	handle_ = CreateWindowEx(
 		//WS_EX_CLIENTEDGE,
 		0,
 		tt_("EDIT"),  // Predefined class; Unicode assumed
 		text.c_str(),      // Button text
 		sty,   // Styles  |BS_OWNERDRAW
-		pos.x,         // x position
-		pos.y,         // y position
-		pos.w,        // Button width
-		pos.h,        // Button height
+		getShowX(),         // x position
+		y,         // y position
+		getWidthNoBorder(),        // Button width
+		getHeighNoBorder(),        // Button height
 		getParentHandle(),     // Parent window
 		NULL,       // No menu.
 		Control::progInstance_,
@@ -2312,7 +2475,7 @@ bool sdf::TextBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& r
 
 	if (msg == WM_PAINT) {
 
-		updateHandleXy();
+		fixPos();
 		//return false;
 	}
 	else if (msg == WM_COMMAND) {
@@ -2321,14 +2484,20 @@ bool sdf::TextBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& r
 			if (onChange_)
 				onChange_();
 			break;
-		case EN_SETFOCUS:
+		case EN_SETFOCUS: {
+			focused = true;
+			onDraw();
 			if (onFocus_)
 				onFocus_();
 			break;
-		case EN_KILLFOCUS:
+		}
+		case EN_KILLFOCUS: {
+			focused = false;
+			onDraw();
 			if (onLeave_)
 				onLeave_();
 			break;
+		}
 		}
 	}
 	return true;
@@ -2337,6 +2506,11 @@ bool sdf::TextBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& r
 
 /////////////////////////////////ListBox/////////////////////////////////////////
 
+
+void sdf::ListBox::onMouseMove(int32_t x, int32_t y) {
+	doParentMove();
+	Control::onMouseMove(x, y);
+}
 
 void sdf::ListBox::Init() {
 	onMeasure();
@@ -2395,7 +2569,8 @@ void sdf::ListBox::Init() {
 
 bool sdf::ListBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& ret) {
 	if (msg == WM_PAINT) {
-		updateHandleXy();
+		fixPos();
+		//updateHandleXy(gdi_, nullptr);
 		//return false;
 	}
 	else if (msg == WM_COMMAND) {
@@ -2422,6 +2597,19 @@ void sdf::ListBox::SetHorizontal(const df::CC& str) {
 
 ///////////////////////////////////ComBox///////////////////////////////////////
 
+
+void sdf::ComBox::onMouseMove(int32_t x, int32_t y) {
+	doParentMove();
+	Control::onMouseMove(x, y);
+}
+
+void sdf::ComBox::onMeasure() {
+	Control::onMeasure();
+	auto wNo = getWidthNoBorder();
+	auto hNo = getHeighNoBorder();
+	if (wNo != showW_ || hNo != showH_)
+		setHW(wNo, hNo);
+}
 
 void sdf::ComBox::Init() {
 	onMeasure();
@@ -2487,7 +2675,8 @@ void sdf::ComBox::Init() {
 
 bool sdf::ComBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& ret) {
 	if (msg == WM_PAINT) {
-		updateHandleXy();
+		fixPos();
+		//updateHandleXy(gdi_, nullptr);
 		//return false;
 	}
 
@@ -2513,9 +2702,7 @@ bool sdf::ComBox::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& re
 
 
 
-
-bool sdf::CheckBox::onLeftUp()
-{
+bool sdf::CheckBox::onLeftUp() {
 
 	DF_SCOPE_GUARD
 	{
@@ -2544,11 +2731,15 @@ void sdf::CheckBox::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw
 	if (!draw)
 		return;
 
+	if (button) {
+		return Button::onDrawText(rect, style, draw);
+	}
+
 	//COUT(tt_("draw checkbox"));
 	int32_t drawX = drawX_ + pos.paddingLeft;
 	int32_t drawY = drawY_ + pos.paddingTop;
 
-	int32_t size = (int32_t)(1 * Window::getScale());
+	int32_t size = (int32_t)(1 * scale_);
 	int32_t w = pos.h - pos.paddingTop - pos.paddingBottom;
 	int bufW = draw->buttonBmp_.GetWidth();
 	uint32_t* buf = (uint32_t*)draw->buttonBmpBuf_;
@@ -2613,7 +2804,7 @@ void sdf::CheckBox::onDrawText(RECT& rect, ControlStyle& style, DrawBuffer* draw
 				}
 			}
 
-			Gdiplus::Pen pen(Gdiplus::Color(Color::white), 2 * Window::getScale());
+			Gdiplus::Pen pen(Gdiplus::Color(Color::white), 2 * scale_);
 			draw->graph_->DrawLine(&pen, drawX + w * 0.20f, drawY + w * 0.42f, drawX + w * 0.40f, drawY + w * 0.67f);
 			draw->graph_->DrawLine(&pen, drawX + w * 0.38f, drawY + w * 0.66f, drawX + w * 0.8f, drawY + w * 0.28f);
 		}
@@ -2872,7 +3063,7 @@ void sdf::FormMenu::onCreate() {
 		v.pos.vertical = true;
 
 
-		for (auto& item : itemList_) {
+		for (size_t itemI = 0; itemI < itemList_.size(); itemI++) {
 			ui_button
 				{
 					if (width > 0) {
@@ -2885,22 +3076,21 @@ void sdf::FormMenu::onCreate() {
 					ui_onclick
 						{
 							close();
-							if (item.onClick)
-								item.onClick();
+							if (itemList_[itemI].onClick)
+								itemList_[itemI].onClick();
 						};
-					if (item.img) {
+					if (itemList_[itemI].img) {
 						ui_image
 							{
 								v.pos.w = 25;
-								v.add(item.img);
+								v.setBitmap(itemList_[itemI].img);
 							};
 					}
 					ui_view
 						{
 							v.pos.marginLeft = 5;
 							v.pos.marginRight = 5;
-							v.text = item.text;
-
+							v.text = itemList_[itemI].text;
 						};
 
 
@@ -2919,8 +3109,7 @@ void sdf::Timer::onTimer(uint32_t id) {
 	it->second.func_();
 }
 
-Timer sdf::Timer::set(Control* con, uint32_t time, std::function<void()>&& func)
-{
+Timer sdf::Timer::set(Control* con, uint32_t time, std::function<void()>&& func) {
 	auto id = idCount()++;
 	if (!con) {
 		Throw_df(tt_("set Timer Error:Null Control"));
@@ -2943,8 +3132,7 @@ Timer sdf::Timer::set(Control* con, uint32_t time, std::function<void()>&& func)
 
 }
 
-void sdf::Timer::reset()
-{
+void sdf::Timer::reset() {
 	if (id == 0) {
 		return;
 	}
@@ -2957,3 +3145,38 @@ void sdf::Timer::reset()
 	id = 0;
 }
 
+
+void sdf::TabBar::doCreate() {
+	CheckGroup::doCreate();
+
+	tabView_ = dynamic_cast<TabView*>(parent_);
+	if (!tabView_) {
+		DF_BREAK_POINT_MSG("Can not find parent TabView");
+		return;
+	}
+
+	if (!tabView_->content_) {
+		DF_BREAK_POINT_MSG("Can not find  TabView content");
+		return;
+	}
+
+	for (auto& v : memberList_) {
+		TabButton* bv = dynamic_cast<TabButton*>(v.get());
+		if (!bv)
+			continue;
+
+
+		if (bv->isCheck && tabView_->content_->memberList_.size() == 0) {
+			Window::runOnUi([this, bv]
+				{
+					tabView_->content_->addMember(bv->getContentView(), false);
+				});
+
+		}
+
+		bv->onClick_ = [this, bv] {
+			tabView_->content_->removeAllMember();
+			tabView_->content_->addMember(bv->getContentView(), true);
+		};
+	}
+}

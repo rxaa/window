@@ -48,7 +48,6 @@ namespace sdf {
 
 
 	protected:
-		///初始化
 		virtual void Init() override;
 
 	};

@@ -44,15 +44,17 @@ namespace sdf {
 
 		}
 		Bitmap buttonBmp_;
-		char* buttonBmpBuf_ = nullptr;
+		uint32_t* buttonBmpBuf_ = nullptr;
 		Gdiplus::Graphics* graph_ = nullptr;
 		Gdi* gdi_ = nullptr;
 
 		void newBmp(int32_t w, int32_t h);
 
 		~DrawBuffer() {
-			if (graph_)
+			if (graph_){
 				delete graph_;
+				graph_ = nullptr;
+			}
 		}
 
 		void draw(int32_t x, int32_t y, int32_t w, int32_t h) {
@@ -98,7 +100,7 @@ namespace sdf {
 		int32_t h = -1;
 
 
-		//实际高宽
+		//实际高宽,包括滚动条宽
 		int32_t controlW = -1;
 		int32_t controlH = -1;
 		int32_t maxW = -1;

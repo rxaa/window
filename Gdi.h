@@ -8,17 +8,15 @@ namespace sdf {
 
 	struct Color {
 		enum {
-			//windows灰
-			grey = 0xffF0F0F0,
+			grey = 0xffDDDDDD,
+            greyFont = 0xFF777777,
 			//黑
 			black = 0xff000000,
-
-			greyLight = 0xFF888888,
-			greyFont = 0xFF333333,
-			//深灰
-			greyMid = 0xffBBBBBB,
-			//深灰
-			darkGrey = 0xffA0A0A0,
+            grey2 = 0xffCCCCCC,
+			grey3 = 0xffBBBBBB,
+            grey4 = 0xffA0A0A0,
+            grey5 = 0xff555555,
+            greyDark = 0xff333333,
 			//红色
 			red = 0xFFff4028,
 			pink = 0xFFffc8d0,
@@ -35,8 +33,9 @@ namespace sdf {
 			yellowLight = 0xFFfffdf5,
 
 			//蓝
+			blueBorder = 0xFF57a0e6,
 			blue = 0xFF4192E1,
-			barkBlue = 0xff0000FF,
+			darkBlue = 0xFF006bd4,
 
 			green = 0xFF1ABC6E,
 			greenLight = 0xFFe9fff4,
@@ -247,7 +246,7 @@ namespace sdf {
 			hdc_ = ::GetDC(hwnd);
 			//图像缩放算法
 			//模糊,坑锯齿
-			SetStretchBltMode(hdc_, HALFTONE);
+			//SetStretchBltMode(hdc_, HALFTONE);
 			//普通
 			//SetStretchBltMode(hdc_, COLORONCOLOR);
 		}

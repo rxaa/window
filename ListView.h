@@ -48,13 +48,15 @@ namespace sdf
 				memberList_[i]->_removeFromParent(false);
 				memberList_.erase(memberList_.begin() + i);
 				list_.erase(list_.begin() + i);
-			}
-			if (update && onShowView) {
-				for (size_t ind = (size_t)i; ind < list_.size(); ind++) {
-					onShowView(list_[ind], ind);
+
+				if (update && onShowView) {
+					for (size_t ind = (size_t)i; ind < list_.size(); ind++) {
+						onShowView(list_[ind], ind);
+					}
+                    measureUpdate();
 				}
-				measureUpdate();
 			}
+
 		}
 
 		void add(const std::shared_ptr<Ty>& dat, bool update) {
@@ -77,6 +79,22 @@ namespace sdf
 			}
 		}
 
+		template <class TT, class ...Args>
+		void bindView(Args && ... rest) {
+			onCreateView = [=](auto& dat, size_t index) {
+				auto con = std::make_shared<TT>(rest...);
+				con->dat = dat;
+				con->index = index;
+				return con;
+			};
+			onShowView = [this](auto& dat, size_t index) {
+				auto con = castMember<TT>(index);
+				con->dat = dat;
+				con->index = index;
+				con->bindUpdate();
+			};
+		}
+
 		virtual void bindUpdate(bool draw = true) {
 			if (onBind_) {
 				onBind_();
@@ -94,16 +112,3 @@ namespace sdf
 
 
 #define ui_list_view(Ty) ui_control(sdf::ListView<Ty>) 
-
-#define ui_list_bind(Ty,...)  v.onCreateView = [&](auto& dat, size_t index) {\
-	auto con = std::make_shared<Ty>(__VA_ARGS__);\
-	con->dat = dat;\
-	con->index = index;\
-	return con;\
-};\
-v.onShowView = [&](auto& dat, size_t index) {\
-	auto con = v.castMember<Ty>(index);\
-	con->dat = dat;\
-	con->index = index;\
-	con->bindUpdate();\
-};

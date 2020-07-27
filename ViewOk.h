@@ -59,10 +59,10 @@ namespace sdf {
             but.stylePress.shadowSize = 3;
 
             but.styleDisable = but.style;
-            but.styleDisable.color = Color::darkGrey;
+            but.styleDisable.color = Color::grey4;
 
             but.styleCheck = but.style;
-            but.styleFocused = but.style;
+            but.styleFocus = but.style;
         }
     };
 }

@@ -19,8 +19,8 @@ namespace sdf {
 		FormMenu() {
 		}
 
-		FormMenu(const std::function<void(df::CC c, size_t i)> & onClick) {
-			onClick_ = onClick;
+		FormMenu(std::function<void(df::CC c, size_t i)> && onClick) {
+			onClick_ = std::move(onClick);
 		}
 
 		~FormMenu() {

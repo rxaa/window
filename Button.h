@@ -13,7 +13,7 @@ namespace sdf
 
 		bool isCheck = false;
 		ControlStyle styleCheck;
-		ControlStyle styleFocused;
+		ControlStyle styleFocus;
 		Button()
 		{
 			hasCursor = true;
@@ -24,7 +24,7 @@ namespace sdf
 		void fontSize(uint32_t size) {
 			Control::fontSize(size);
 			styleCheck.font.size = size;
-			styleFocused.font.size = size;
+			styleFocus.font.size = size;
 		}
 
 		void fontBold() {
@@ -33,7 +33,7 @@ namespace sdf
 			}
 			Control::fontBold();
 			styleCheck.font.bold = true;
-			styleFocused.font.bold = true;
+			styleFocus.font.bold = true;
 		}
 
 		static void setMenuStyle(sdf::Button* but) {
@@ -49,10 +49,10 @@ namespace sdf
 			but->stylePress.shadowSize = 3;
 
 			but->styleDisable = but->style;
-			but->styleDisable.color = Color::darkGrey;
+			but->styleDisable.color = Color::grey4;
 
 			but->styleCheck = but->style;
-			but->styleFocused = but->style;
+			but->styleFocus = but->style;
 		}
 
 		void setBackColor(int32_t color) {
@@ -61,7 +61,7 @@ namespace sdf
 			styleHover.backColor = color;
 			styleDisable.backColor = color;
 			styleCheck.backColor = color;
-			styleFocused.backColor = color;
+			styleFocus.backColor = color;
 		}
 
 		void setColorLight(uint32_t col) {
@@ -73,9 +73,9 @@ namespace sdf
 			stylePress = styleHover;
 			stylePress.shadowSize = 5;
 			styleDisable = style;
-			styleDisable.color = Color::greyLight;
+			styleDisable.color = Color::grey5;
 
-			styleFocused = style;
+			styleFocus = style;
 			styleCheck = style;
 		}
 
@@ -88,8 +88,8 @@ namespace sdf
 			stylePress = styleHover;
 			stylePress.shadowSize = 5;
 			styleDisable = style;
-			styleDisable.color = Color::darkGrey;
-			styleFocused = style;
+			styleDisable.color = Color::grey4;
+			styleFocus = style;
 			styleCheck = style;
 		}
 
@@ -114,13 +114,12 @@ namespace sdf
 		}
 
 		virtual bool onLeftUp() override {
-			DF_SCOPE_GUARD
-			{
+		
+			if (isPress) {
 				isPress = false;
 				onDraw();
-			};
-			if (onClick_ && isPress) {
-				onClick_();
+				if (onClick_)
+					onClick_();
 			}
 			return false;
 		}
@@ -133,7 +132,7 @@ namespace sdf
 			if (par) {
 				par->hasCursor = true;
 			}
-		
+
 			SetCursor(LoadCursor(NULL, IDC_HAND));
 			onDraw();
 		}
@@ -160,6 +159,11 @@ namespace sdf
 
 		virtual void onDraw() override;
 
+		virtual void doCreate() override {
+			Control::doCreate();
+			scaleStyle(styleCheck);
+			scaleStyle(styleFocus);
+		}
 
 	protected:
 		friend View;
@@ -175,7 +179,7 @@ namespace sdf
 
 
 
-#define ui_onclick v.onClick_ = [&]()
+#define ui_onclick v.onClick_ = [=,&v=v]()
 
 #define ui_button ui_control(sdf::Button)
 
