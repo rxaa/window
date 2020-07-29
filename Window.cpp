@@ -5,7 +5,7 @@
 #include "../df/df_impl.hpp"
 #include "FormOk.h"
 #include "ScrollView.h"
-
+#include "WebBrowser.hpp"
 
 std::unordered_map<uint32_t, TimerItem> sdf::Timer::timerMap;
 
@@ -565,10 +565,16 @@ void sdf::Control::updateHandleXy(Gdi& gdi, DrawBuffer* draw) {
 	if (x != showX_ || y != showY_) {
 		setPos(x, y, true);
 	}
-	if (draw)
-		gdi.DrawTo(draw->buttonBmp_, x, y, getWidthNoBorder(), getHeighNoBorder());
 
-	if (parent_->needDraw && draw) {
+	if (!draw)
+		return;
+
+	if (!draw->buttonBmpBuf_)
+		return;
+
+	gdi.DrawTo(draw->buttonBmp_, x, y, getWidthNoBorder(), getHeighNoBorder());
+
+	if (parent_->needDraw) {
 		draw->draw(drawX_, drawY_, pos.w, pos.h);
 	}
 }
@@ -874,11 +880,12 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 			int32_t w = LOWORD(lParam);
 			int32_t h = HIWORD(lParam);
 			{
+				//COUT(tt_("WM_SIZE"));
 				winP->pos.w = w;
 				winP->pos.h = h;
 				winP->onResize();
 				winP->AdjustLayout();
-				winP->update();
+				::SendMessage(hDlg, WM_PAINT, 0, 0);
 			}
 			break;
 		}
@@ -889,16 +896,23 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 			break;
 		}
 
-
 		case WM_PAINT: {
-
-			winP->onDraw();
+			//COUT(tt_("WM_PAINT"));
 			winP->onPaint();
-			PAINTSTRUCT ps = { 0 };
-			HDC dd = BeginPaint(winP->handle_, &ps);
-			//COUT(tt_("dc:") << (int*)winP->gdi_.GetDc() << tt_(" - ") << (int*)dd);
-			winP->drawBuff_->buttonBmp_.DrawTo(winP->gdi_.GetDc());
-			EndPaint(winP->handle_, &ps);
+
+			//if (df::Time::getNowMsec() - winP->drawTime > 10) {
+			winP->onDraw();
+			if (winP->drawBuff_->buttonBmpBuf_) {
+				PAINTSTRUCT ps = { 0 };
+				HDC dd = BeginPaint(winP->handle_, &ps);
+				//COUT(tt_("dc:") << (int*)winP->gdi_.GetDc() << tt_(" - ") << (int*)dd);
+				winP->drawBuff_->buttonBmp_.DrawTo(winP->gdi_.GetDc());
+				EndPaint(winP->handle_, &ps);
+			}
+			winP->drawTime = df::Time::getNowMsec();
+			//}
+
+
 			break;
 		}
 					 //case WM_ERASEBKGND:
@@ -979,7 +993,8 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 
 
 	WNDCLASS wndclass = { 0 };
-	wndclass.style = CS_VREDRAW | CS_HREDRAW;
+	//wndclass.style = CS_VREDRAW | CS_HREDRAW;
+	wndclass.style = 0;
 	wndclass.lpfnWndProc = (WNDPROC)WndProc;
 	wndclass.cbClsExtra = 0;
 	wndclass.cbWndExtra = 0;
@@ -993,7 +1008,6 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 	else {
 		wndclass.hbrBackground = Brush::GetWhiteBrush();//窗口背影画刷为空
 	}
-
 	wndclass.lpszMenuName = NULL;
 
 	TCHAR className[18] = tt_("sdfWin");
@@ -1084,9 +1098,9 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 	//文字背景透明
 	gdi_.SetTextBackColor();
 
-	if (pos.w > 0 && pos.h > 0) {
-		drawBuff_->newBmp(pos.w, pos.h);
-	}
+	//if (pos.w > 0 && pos.h > 0) {
+	//	drawBuff_->newBmp(pos.w, pos.h);
+	//}
 
 	Control::controlOpenList_.push_back(this);
 
@@ -1111,16 +1125,24 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 			pos.w + getBorderW(), pos.h + getBorderH(),
 			SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
 
-		if (pos.w > 0 && pos.h > 0) {
+		/*if (pos.w > 0 && pos.h > 0) {
 			drawBuff_->newBmp(pos.w, pos.h);
-		}
+		}*/
 	}
 
-
+	if (memberList_.size() == 1) {
+		if (dynamic_cast<WebView*>(memberList_[0].get())) {
+			if (memberList_[0]->pos.flexX == 1 && memberList_[0]->pos.flexY == 1) {
+				drawBack = false;
+			}
+		}
+	}
 	::ShowWindow(handle_, show);
 	::UpdateWindow(handle_);
 	currentHandle_ = oldHandle;
 	//currentWindow_=oldWindow;
+
+
 }
 
 void sdf::Window::onInit() {
@@ -1224,7 +1246,12 @@ void sdf::Window::AdjustLayout() {
 }
 
 void sdf::Window::onDraw() {
+	if (!drawBack) {
+		return;
+	}
+
 	auto draw = getDraw();
+
 	bool drawSub = drawStyle(draw, style, false, false);
 
 	if (drawSub) {
@@ -1492,8 +1519,9 @@ void sdf::ScrollView::onMeasure() {
 
 	Control::onMeasure();
 
-	if (pos.controlW != showW_ || pos.controlH != showH_)
+	if (pos.controlW != showW_ || pos.controlH != showH_) {
 		setHW(pos.controlW, pos.controlH);
+	}
 
 	auto fontSize = Control::GlobalFont().GetFontSize();
 
@@ -1580,7 +1608,6 @@ void sdf::ScrollView::onMeasure() {
 	setVertScrollInfo(vertMax, vertPage);
 	setHoriScrollInfo(horiMax, horiPage);
 
-
 }
 
 void sdf::ScrollView::onDraw() {
@@ -1637,6 +1664,7 @@ void sdf::ScrollView::onDraw() {
 			if (parent_->needDraw) {
 				gdi_.DrawFrom(draw->buttonBmp_, 0, 0, pos.w, pos.h, drawX_, drawY_);
 			}
+
 		}
 
 	}
@@ -2001,6 +2029,27 @@ void sdf::Control::removeOpenControl(Control* cont) {
 			break;
 		}
 	}
+}
+
+bool sdf::Control::setClipboardText(df::CCa text)
+{
+	return setClipboardText(df::code::UTF8ToWide(text));
+}
+
+bool sdf::Control::setClipboardText(df::CCw text)
+{
+	if (OpenClipboard(currentHandle_)) {
+		EmptyClipboard();
+		HANDLE hData = GlobalAlloc(GMEM_MOVEABLE, text.bytes()+2);
+		LPWSTR pData = (LPWSTR)GlobalLock(hData);
+		CopyMemory(pData, text.data(), text.bytes());
+		pData[text.size()] = 0;
+		GlobalUnlock(hData);
+		SetClipboardData(CF_UNICODETEXT, hData);
+		CloseClipboard();
+		return true;
+	}
+	return false;
 }
 
 Window* sdf::Control::getWindow() {
@@ -3179,4 +3228,110 @@ void sdf::TabBar::doCreate() {
 			tabView_->content_->addMember(bv->getContentView(), true);
 		};
 	}
+}
+
+
+
+
+void sdf::WebView::navigate(const std::wstring& szUrl)
+{
+	url_ = szUrl;
+	if (web)
+		web->Navigate(szUrl);
+}
+
+void sdf::WebView::onMouseMove(int32_t x, int32_t y)
+{
+	doParentMove();
+	Control::onMouseMove(x, y);
+}
+
+void sdf::WebView::onMeasure()
+{
+	Control::onMeasure();
+	auto wNo = pos.w;
+	auto hNo = pos.h;
+	if (wNo != showW_ || hNo != showH_) {
+		setHW(wNo, hNo, true, false);
+		if (web) {
+			RECT rect;
+			rect.left = 0;
+			rect.top = 0;
+			rect.right = rect.left + wNo;
+			rect.bottom = rect.top + hNo;
+			web->SetRect(rect);
+		}
+
+	}
+}
+
+void sdf::WebView::onDraw()
+{
+	updateDrawXY();
+
+	DrawBuffer* draw = getDraw();
+	//update();
+	updateHandleXy(gdi_, draw);
+}
+
+void sdf::WebView::Init() {
+	onMeasure();
+
+
+	int32_t x = getDrawX();
+	int32_t y = getDrawY();
+	handle_ = CreateWindow(
+		tt_("BUTTON"),  // Predefined class; Unicode assumed
+		text.c_str(),      // Button text
+		WS_VISIBLE | WS_CHILD | BS_OWNERDRAW | WS_CLIPCHILDREN,  // Styles  |BS_OWNERDRAW
+		x,         // x position
+		y,         // y position
+		pos.controlW,        // Button width
+		pos.controlH,        // Button height
+		getParentHandle(),     // Parent window
+		NULL,       // No menu.
+		Control::progInstance_,
+		NULL);      // Pointer not needed.
+
+	if (!handle_) {
+		DF_ERR(tt_("CreateWindow Button failed!"));
+		return;
+	}
+
+	Control::Init();
+
+	gdi_.Init(handle_);
+	if (style.font.hasFont())
+		gdi_.setFont(Font::getFont(style.font));
+	else
+		gdi_.setFont(Window::GlobalFont());
+
+	prevMsgProc_ = (WNDPROC)SetWindowLongPtr(handle_, GWLP_WNDPROC, (LONG_PTR)Control::ButtonProc);
+
+
+	web = std::unique_ptr<df::WebBrowser>(new df::WebBrowser(GetHandle()));
+	//设置浏览器大小
+	RECT rect;
+	rect.left = 0;
+	rect.top = 0;
+	rect.right = rect.left + pos.controlW;
+	rect.bottom = rect.top + pos.controlH;
+	web->SetRect(rect);
+
+
+	if (url_.length() > 0) {
+		web->Navigate(url_);
+	}
+}
+
+bool sdf::WebView::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& ret)
+{
+	if (msg == WM_PAINT) {
+
+		//fixPos();
+		ret = 1;
+		return false;
+	}
+	return true;
+	
 }

@@ -17,9 +17,12 @@ namespace sdf {
 
 		//父窗口引用
 		std::shared_ptr<Window> ptrParent_;
+		int64_t drawTime = 0;
 	public:
 		static int mouseX_, mouseY_;
 		static const int32_t taskMessage_ = WM_USER + 8274;
+
+
 
 		df::CC winClassName;
 
@@ -40,8 +43,14 @@ namespace sdf {
 		int32_t maxHeight = 0;
 		int32_t maxWeight = 0;
 		//是否有最大化按钮
+
+
 		bool maxBox = true;
 		bool minBox = true;
+
+		//是否绘制背景
+		bool drawBack = true;
+
 		//是否允许调整大小
 		bool resizeAble = true;
 		//初始为最大化

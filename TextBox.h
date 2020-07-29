@@ -54,7 +54,7 @@ namespace sdf
 		Gdi gdi_;
 		virtual void Init();
 
-		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT& ret) override;
+		virtual bool ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& ret) override;
 	};
 
 }
