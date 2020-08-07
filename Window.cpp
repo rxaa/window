@@ -1,5 +1,4 @@
-﻿
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "Control.h"
 #include "Font.h"
 #include "../df/df_impl.hpp"
@@ -22,6 +21,8 @@ HINSTANCE sdf::Control::progInstance_ = nullptr;
 sdf::Window* sdf::Control::currentWindow_ = nullptr;
 
 std::vector<sdf::Control*> sdf::Control::controlOpenList_;
+
+std::array<uint32_t, 256> sdf::Control::keyboardState = { 0 };
 
 //sdf::Control* sdf::Control::mouseHandle_ = 0;
 
@@ -275,25 +276,27 @@ void sdf::Control::onMouseMove(int32_t x, int32_t y) {
 	int32_t vert = getVertPos();
 	int32_t vX = x + hori;
 	int32_t vy = y + vert;
+	//
+		//倒序
 
-	//倒序
-	for (auto v = memberList_.rbegin(); v != memberList_.rend(); ++v) {
+	for (intptr_t memI = memberList_.size() - 1; memI >= 0; memI--) {
+		auto& v = memberList_[memI];
 
-		if ((**v).hited(vX, vy)) {
-
-			if (hoverView != (*v).get()) {
+		if ((*v).hited(vX, vy)) {
+			hoverViewIndex = memI;
+			if (hoverView != v.get()) {
 				if (hoverView) {
 					doLeave();
 				}
-				hoverView = (*v).get();
+				hoverView = v.get();
 				hoverView->isHover = true;
 				hoverView->onHover();
 			}
-			(**v).onMouseMove(x - (**v).pos.x + hori, y - (**v).pos.y + vert);
+			(*v).onMouseMove(x - (*v).pos.x + hori, y - (*v).pos.y + vert);
 			return;
 		}
 	}
-
+	hoverViewIndex = -1;
 	doLeave();
 }
 
@@ -593,7 +596,13 @@ void Control::drawMember(DrawBuffer* draw) {
 		}
 		sub->onDraw();
 	}
+
+
+	layerToDraw(draw);
+
 	if (parent_ && parent_->needDraw && draw) {
+		drawParentLayer();
+
 		draw->draw(drawX_, drawY_, pos.w, pos.h);
 	}
 	//draw->gdi_->DrawFrom(draw->buttonBmp_, drawX_, drawY_, pos.w, pos.h, drawX_, drawY_);
@@ -706,6 +715,36 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 		}
 		break;
 	}
+	case WM_SYSKEYDOWN:
+	case WM_KEYDOWN: {
+		if (wParam > 0 && wParam < Control::keyboardState.size()) {
+			uint32_t extended = (uint32_t)lParam & (1 << 24);
+			Control::keyboardState[wParam] = 1 | extended;
+
+			//COUT(tt_("WM_KEYDOWN ") << wParam << tt_(" extended ") << extended);
+
+		}
+
+		break;
+	}
+	case WM_SYSKEYUP:
+	case WM_KEYUP: {
+		if (wParam > 0 && wParam < Control::keyboardState.size()) {
+			Control::keyboardState[wParam] = 0;
+		}
+		//COUT(tt_("WM_KEYUP ") << wParam);
+		break;
+	}
+	case WM_KILLFOCUS: {
+		if (cont)
+			cont->onKillFocus();
+		break;
+	}
+	case WM_SETFOCUS: {
+		if (cont)
+			cont->onFocus();
+		break;
+	}
 	case WM_LBUTTONDOWN: {
 		if (cont) {
 			cont->doEvent(&Control::onCaptureLeftDown, &Control::onLeftDown);
@@ -771,8 +810,9 @@ intptr_t sdf::Control::controlComProc(HWND hDlg, UINT message, WPARAM wParam, LP
 	}
 
 	case WM_MOUSEMOVE: {
-		int32_t x = LOWORD(lParam);
-		int32_t y = HIWORD(lParam);
+
+		int32_t x = (int16_t)LOWORD(lParam);
+		int32_t y = (int16_t)HIWORD(lParam);
 
 		sdf::Window::mouseX_ = x;
 		sdf::Window::mouseY_ = y;
@@ -856,17 +896,16 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 								   controlP->ControlNotify(lpn);
 							   break;
 						   }*/
-		case WM_KILLFOCUS: {
-			winP->onKillFocus();
-		}
-		case WM_SETFOCUS: {
-			winP->onFocus();
-		}
+
 		case WM_ACTIVATE: {
+
 			if (wParam == WA_INACTIVE) {
+				//COUT(tt_("WA_INACTIVE"));
 				winP->onInActive();
+				std::memset(keyboardState.data(), 0, keyboardState.size());
 			}
 			else {
+				//COUT(tt_("WM_ACTIVATE"));
 				winP->onActive();
 			}
 			break;
@@ -1472,6 +1511,8 @@ void sdf::View::onDraw() {
 
 	bool drawSub = drawStyle(draw, style, parent_->needDraw);
 
+
+
 	if (drawSub) {
 		drawMember(draw);
 	}
@@ -1640,8 +1681,30 @@ void sdf::ScrollView::onDraw() {
 		drawSub = drawStyle(draw, style, parent_->needDraw);
 	}
 
+
+
 	if (drawSub) {
 
+		if (linePos >= 0) {
+			if (pos.vertical) {
+				int32_t lineX = 0;
+				int32_t lineY = linePos - getVertPos();
+				auto drawLayer = getDrawLayer(lineX, lineY, pos.w, dragLineSize, true);
+				drawRect(drawLayer_->buttonBmpBuf_, drawLayer_->buttonBmp_.GetWidth(), lineX, lineY,
+					pos.w, dragLineSize, dragLineColor);
+			}
+			else {
+				int32_t lineX = linePos - getHoriPos();
+				int32_t lineY = 0;
+				auto drawLayer = getDrawLayer(lineX, lineY, dragLineSize, pos.h, true);
+				drawRect(drawLayer_->buttonBmpBuf_, drawLayer_->buttonBmp_.GetWidth(), lineX, lineY,
+					dragLineSize, pos.h, dragLineColor);
+			}
+
+		}
+		else if (drawLayer_) {
+			drawLayer_->clear();
+		}
 
 		needDraw = false;
 		//df::TickClock([&] {
@@ -1656,19 +1719,22 @@ void sdf::ScrollView::onDraw() {
 		//	}, 1);
 
 
+
+
 		needDraw = true;
 		if (draw) {
+			layerToDraw(draw);
 			DrawBuffer* drawParent = parent_->getDraw();
 			if (drawParent)
 				drawParent->buttonBmp_.DrawFrom(draw->buttonBmp_, x, y, pos.w, pos.h, drawX_, drawY_);
 			if (parent_->needDraw) {
+				drawParentLayer();
 				gdi_.DrawFrom(draw->buttonBmp_, 0, 0, pos.w, pos.h, drawX_, drawY_);
 			}
 
 		}
 
 	}
-
 
 }
 
@@ -1708,7 +1774,7 @@ void sdf::ScrollView::Init() {
 	//	{
 	initAllSub();
 	/*	}, 1);*/
-
+	dragLineSize = (int32_t)(dragLineSize * Control::scale_);
 
 	setVertScrollInfo(vertMax, vertPage);
 	setHoriScrollInfo(horiMax, horiPage);
@@ -1844,15 +1910,20 @@ bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPa
 	return true;
 }
 
+
+
 void ScrollView::onMouseMove(int32_t x, int32_t y) {
 	//COUT(tt_("ScrollView onMouseMove"))
+	mouseX = x;
+	mouseY = y;
 	doParentMove();
 	Control::onMouseMove(x, y);
 }
 
 void ScrollView::onLeave() {
 	//COUT(tt_("ScrollView onLeave"))
-	//doLeave();
+		//doLeave();
+
 }
 
 
@@ -2031,16 +2102,14 @@ void sdf::Control::removeOpenControl(Control* cont) {
 	}
 }
 
-bool sdf::Control::setClipboardText(df::CCa text)
-{
+bool sdf::Control::setClipboardText(df::CCa text) {
 	return setClipboardText(df::code::UTF8ToWide(text));
 }
 
-bool sdf::Control::setClipboardText(df::CCw text)
-{
+bool sdf::Control::setClipboardText(df::CCw text) {
 	if (OpenClipboard(currentHandle_)) {
 		EmptyClipboard();
-		HANDLE hData = GlobalAlloc(GMEM_MOVEABLE, text.bytes()+2);
+		HANDLE hData = GlobalAlloc(GMEM_MOVEABLE, text.bytes() + 2);
 		LPWSTR pData = (LPWSTR)GlobalLock(hData);
 		CopyMemory(pData, text.data(), text.bytes());
 		pData[text.size()] = 0;
@@ -2052,12 +2121,75 @@ bool sdf::Control::setClipboardText(df::CCw text)
 	return false;
 }
 
+DrawBuffer* sdf::Control::getDraw()
+{
+	DrawBuffer* draw = drawBuff_;
+	auto par = parent_;
+	while (draw == nullptr) {
+		if (par == nullptr) {
+			return nullptr;
+		}
+		draw = par->drawBuff_;
+		par = par->parent_;
+	}
+	return draw;
+}
+
 Window* sdf::Control::getWindow() {
 	Control* top = getTopParent();
 	if (top) {
 		return dynamic_cast<Window*>(top);
 	}
 	return nullptr;
+}
+
+DrawBuffer* sdf::Control::getDrawLayer(int32_t& x, int32_t& y, int32_t w, int32_t h, bool clear)
+{
+	if (!drawLayer_) {
+		drawLayer_ = new DrawBuffer(nullptr);
+		drawLayer_->newBmp(w, h);
+		drawLayer_->x_ = x;
+		drawLayer_->y_ = y;
+		x = 0;
+		y = 0;
+	}
+	else if (clear) {
+		if (drawLayer_->buttonBmp_.GetWidth() < w || drawLayer_->buttonBmp_.GetHeight() < h) {
+			drawLayer_->newBmp(w, h);
+		}
+		drawLayer_->clear();
+		drawLayer_->x_ = x;
+		drawLayer_->y_ = y;
+		x = 0;
+		y = 0;
+	}
+
+	return drawLayer_;
+}
+
+void sdf::Control::clearDrawLayer()
+{
+
+}
+
+void sdf::Control::drawParentLayer()
+{
+	auto par = this->parent_;
+	while (par) {
+		if (par->drawLayer_) {
+			par->layerToDraw(par->getDraw());
+		}
+		par = par->parent_;
+	}
+}
+
+void sdf::Control::layerToDraw(DrawBuffer* draw)
+{
+	if (drawLayer_ && draw) {
+		drawLayer_->buttonBmp_.DrawAlphaTo(draw->buttonBmp_, drawLayer_->x_, drawLayer_->y_,
+			drawLayer_->buttonBmp_.GetWidth(), drawLayer_->buttonBmp_.GetHeight()
+		);
+	}
 }
 
 bool sdf::Control::drawStyle(DrawBuffer* draw, ControlStyle& style, bool parentBack, bool brawText) {
@@ -2360,7 +2492,6 @@ void sdf::Button::onDraw() {
 	else if (isHover) {
 		drawSub = drawStyle(draw, styleHover, parent_->needDraw);
 	}
-
 	else {
 		drawSub = drawStyle(draw, style, parent_->needDraw);
 	}
@@ -2444,6 +2575,11 @@ void sdf::TextBox::onDraw() {
 		//update();
 		updateHandleXy(gdi_, draw);
 	}
+}
+
+bool sdf::TextBox::onLeftDown()
+{
+	return false;
 }
 
 
@@ -3164,6 +3300,9 @@ Timer sdf::Timer::set(Control* con, uint32_t time, std::function<void()>&& func)
 		Throw_df(tt_("set Timer Error:Null Control"));
 	}
 	auto topCon = con->getTopParent();
+	if (!topCon) {
+		topCon = con;
+	}
 	if (!topCon || topCon->GetHandle() == nullptr) {
 		Throw_df(tt_("set Timer Error:Null Handle"));
 	}
@@ -3223,7 +3362,8 @@ void sdf::TabBar::doCreate() {
 
 		}
 
-		bv->onClick_ = [this, bv] {
+		bv->onClick_ = [this, bv]
+		{
 			tabView_->content_->removeAllMember();
 			tabView_->content_->addMember(bv->getContentView(), true);
 		};
@@ -3231,23 +3371,18 @@ void sdf::TabBar::doCreate() {
 }
 
 
-
-
-void sdf::WebView::navigate(const std::wstring& szUrl)
-{
+void sdf::WebView::navigate(const std::wstring& szUrl) {
 	url_ = szUrl;
 	if (web)
 		web->Navigate(szUrl);
 }
 
-void sdf::WebView::onMouseMove(int32_t x, int32_t y)
-{
+void sdf::WebView::onMouseMove(int32_t x, int32_t y) {
 	doParentMove();
 	Control::onMouseMove(x, y);
 }
 
-void sdf::WebView::onMeasure()
-{
+void sdf::WebView::onMeasure() {
 	Control::onMeasure();
 	auto wNo = pos.w;
 	auto hNo = pos.h;
@@ -3265,8 +3400,7 @@ void sdf::WebView::onMeasure()
 	}
 }
 
-void sdf::WebView::onDraw()
-{
+void sdf::WebView::onDraw() {
 	updateDrawXY();
 
 	DrawBuffer* draw = getDraw();
@@ -3324,14 +3458,13 @@ void sdf::WebView::Init() {
 	}
 }
 
-bool sdf::WebView::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& ret)
-{
-	if (msg == WM_PAINT) {
+bool sdf::WebView::ControlProc(HWND, UINT msg, WPARAM wParam, LPARAM, LRESULT& ret) {
+	//if (msg == WM_PAINT) {
 
-		//fixPos();
-		ret = 1;
-		return false;
-	}
+	//	//fixPos();
+	//	ret = 1;
+	//	return false;
+	//}
 	return true;
-	
+
 }

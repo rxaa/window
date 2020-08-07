@@ -88,7 +88,7 @@ namespace sdf
 			stylePress = styleHover;
 			stylePress.shadowSize = 5;
 			styleDisable = style;
-			styleDisable.color = Color::grey4;
+			styleDisable.color = Color::grey5;
 			styleFocus = style;
 			styleCheck = style;
 		}

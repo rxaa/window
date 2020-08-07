@@ -42,9 +42,12 @@ namespace sdf
 
 	
 		virtual void onMeasure() override;
+
 		virtual void onMouseMove(int32_t x, int32_t y) override;
 
 		virtual void onDraw();
+
+		virtual bool onLeftDown() override;
 
 		virtual void doCreate() override {
 			Control::doCreate();

@@ -39,6 +39,7 @@ namespace sdf {
 		static Window* currentWindow_;
 		static float scale_;
 		static std::vector<Control*> controlOpenList_;
+		static std::array<uint32_t, 256> keyboardState;
 
 		static void removeOpenControl(Control* cont);
 
@@ -62,7 +63,7 @@ namespace sdf {
 
 		template<class Func1, class Func2>
 		void doEvent(Func1 f1, Func2 f2) {
-			auto ho = this->hoverView;
+			auto ho = this;
 			auto last = ho;
 			while (ho) {
 				if (!(ho->*f1)())
@@ -83,6 +84,11 @@ namespace sdf {
 		/// </summary>
 		DrawBuffer* drawBuff_ = nullptr;
 
+		/// <summary>
+		/// 保存子absolute view绘图缓冲
+		/// </summary>
+		DrawBuffer* drawLayer_ = nullptr;
+
 		//相对于父容器的坐标
 		int32_t showX_ = 0;
 		int32_t showY_ = 0;
@@ -92,6 +98,7 @@ namespace sdf {
 		ControlStyle* lastDrawStyle = 0;
 
 		Control* hoverView = nullptr;
+		intptr_t hoverViewIndex = -1;
 
 		WNDPROC prevMsgProc_ = 0;
 		int32_t measureX_ = 0;
@@ -158,32 +165,40 @@ namespace sdf {
 			style.font.bold = true;
 		}
 
+		std::shared_ptr<Control> & getMember(size_t i) {
+			if (i >= memberList_.size()) {
+				Throw_df(i << tt_(" : out of getMember range : ") << memberList_.size());
+			}
+			return memberList_[i];
+		}
 
 		template<class T>
 		inline std::shared_ptr<T> castMember(size_t index) {
-			DF_ASSERT(index < memberList_.size());
+			if (index >= memberList_.size()) {
+				Throw_df(index << tt_(" : castMember failed index out range:") << memberList_.size());
+			}
 			return std::static_pointer_cast<T>(memberList_[index]);
 		}
 
 		virtual ~Control() {
 			ReleaseUserData();
+			if (drawLayer_) {
+				delete drawLayer_;
+				drawLayer_ = nullptr;
+			}
 		}
 
 		//回取顶层绘图缓冲
-		DrawBuffer* getDraw() {
-			DrawBuffer* draw = drawBuff_;
-			auto par = parent_;
-			while (draw == nullptr) {
-				if (par == nullptr) {
-					return nullptr;
-				}
-				draw = par->drawBuff_;
-				par = par->parent_;
-			}
-			return draw;
-		}
+		DrawBuffer* getDraw();
 
 		Window* getWindow();
+
+
+		DrawBuffer* getDrawLayer(int32_t &x,int32_t &y,int32_t w,int32_t h,bool clear);
+
+		void clearDrawLayer();
+		void layerToDraw(DrawBuffer* draw);
+		void drawParentLayer();
 
 		Control* getTopParent() {
 			auto par = parent_;
@@ -395,7 +410,7 @@ namespace sdf {
 		}
 
 
-		//返回flase中的事件回流
+		//返回flase中断事件回流
 		virtual bool onLeftUp() {
 			return true;
 		}
@@ -647,6 +662,18 @@ namespace sdf {
 
 		static uint32_t generateId() {
 			return (uint32_t)(std::rand() % (INT_MAX - 1)) + 1;
+		}
+
+		static bool isKeyPress(uint8_t key) {
+			return keyboardState[key] > 0;
+		}
+
+		static bool isKeyShiftPress() {
+			return keyboardState[VK_SHIFT] > 0;
+		}
+
+		static bool isKeyCtrlPress() {
+			return keyboardState[VK_CONTROL] > 0;
 		}
 
 		static void drawRect(uint32_t* buf, int32_t bufW, int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color);

@@ -37,24 +37,35 @@ enum class AlignType : uint8_t {
 #include "Bitmap.h"
 
 namespace sdf {
+
 	class DrawBuffer {
 		DF_DISABLE_COPY_ASSIGN(DrawBuffer)
 	public:
 		DrawBuffer(Gdi* g) :gdi_(g) {
 
 		}
+
 		Bitmap buttonBmp_;
 		uint32_t* buttonBmpBuf_ = nullptr;
 		Gdiplus::Graphics* graph_ = nullptr;
 		Gdi* gdi_ = nullptr;
 
+		//x_=drawX_-getHoriPos()+pos.x;
+		int32_t x_ = 0;
+		int32_t y_ = 0;
+
 		void newBmp(int32_t w, int32_t h);
 
 		~DrawBuffer() {
-			if (graph_){
+			if (graph_) {
 				delete graph_;
 				graph_ = nullptr;
 			}
+		}
+
+		void clear() {
+			if (buttonBmpBuf_)
+				std::memset(buttonBmpBuf_, 0, buttonBmp_.GetWidth() * buttonBmp_.GetHeight() * 4);
 		}
 
 		void draw(int32_t x, int32_t y, int32_t w, int32_t h) {

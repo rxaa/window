@@ -16,8 +16,16 @@ namespace sdf
 		int32_t vertRemain = 0;
 		int32_t horiPos = 0;
 		int32_t horiRemain = 0;
-		
+
+		int32_t mouseX = 0;
+		int32_t mouseY = 0;
+
+		intptr_t lastPressIndex = -1;
+
 	public:
+		int32_t linePos = -1;
+		int32_t dragLineSize = 2;
+		uint32_t dragLineColor = Color::green;
 
 		ScrollView() {
 			pos.vertical = true;
@@ -59,6 +67,29 @@ namespace sdf
 			}
 		}
 
+
+		void eachLastPress(std::function<void(size_t i)> func) {
+			if (hoverViewIndex < 0)
+				return;
+
+			if (lastPressIndex >= 0) {
+				if (lastPressIndex >= hoverViewIndex) {
+					for (size_t i = (size_t)hoverViewIndex; i <= (size_t)lastPressIndex; i++) {
+						func(i);
+					}
+				}
+				else {
+					for (size_t i = (size_t)lastPressIndex; i <= (size_t)hoverViewIndex; i++) {
+						func(i);
+					}
+				}
+			}
+			else {
+				func(hoverViewIndex);
+			}
+		}
+
+
 		//virtual void onHover() {
 		//	onDraw();
 		//}
@@ -68,6 +99,7 @@ namespace sdf
 		//}
 
 		virtual int32_t getHoriPos() {
+
 			return horiPos * Control::GlobalFont().GetFontSize();
 		}
 
@@ -87,8 +119,13 @@ namespace sdf
 
 		virtual void onDraw() override;
 
-		virtual void Init() override;
 
+	protected:
+		void setLastPressIndex() {
+			lastPressIndex = hoverViewIndex;
+		}
+
+		virtual void Init() override;
 
 		virtual bool ControlProc(HWND, UINT, WPARAM, LPARAM, LRESULT& ret) override;
 	};
