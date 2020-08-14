@@ -30,7 +30,7 @@ namespace sdf {
 		template < class ...Args>
 		FormMenu * add(const df::CC& head, Args... rest) {
 			size_t index = itemList_.size();
-			itemList_.push_back({ head.ToString(),nullptr,[index,this]() {
+			itemList_.push_back({ head.toString(),nullptr,[index,this]() {
 				auto& menu = itemList_[index];
 				onClick_(menu.text, index);
 				} });

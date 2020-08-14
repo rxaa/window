@@ -60,7 +60,7 @@ namespace sdf
 				if (!initList)
 					initList.reset(new std::vector<String>());
 
-				initList->push_back(str.ToString());
+				initList->push_back(str.toString());
 				return 0;
 			}
 

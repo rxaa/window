@@ -9,15 +9,15 @@ namespace sdf {
 	public:
 		std::function<void()> onOk_;
 		FormOk(df::CC t) {
-			content = t.ToString();
+			content = t.toString();
 		}
 		FormOk(df::CC t,df::CC title) {
-			text = title.ToString();
-			content = t.ToString();
+			text = title.toString();
+			content = t.toString();
 		}
 
 		FormOk(df::CC t,const std::function<void()>& onClick) {
-			content = t.ToString();
+			content = t.toString();
 			onOk_ = onClick;
 		}
 

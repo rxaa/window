@@ -1344,7 +1344,7 @@ void sdf::Window::PopMessage(const df::CC& msg, int time) {
 		return;
 	}
 
-	::SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR) new PopMsgStruct{ msg.ToString(), 0, time });
+	::SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR) new PopMsgStruct{ msg.toString(), 0, time });
 	//::ShowWindow(hwnd, 1);
 	::SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOACTIVATE);
 
