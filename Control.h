@@ -598,7 +598,7 @@ namespace sdf {
 
 			int res = ::GetWindowTextLength(handle_);
 			text.resize(res);
-			GetWindowText(handle_, &text[0], (int)text.capacity());
+			GetWindowText(handle_, &text[0], (int)text.capacity() + 1);
 			return text;
 		}
 

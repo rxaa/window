@@ -6,6 +6,8 @@
 #include "ScrollView.h"
 #include "WebBrowser.hpp"
 
+
+
 std::unordered_map<uint32_t, TimerItem> sdf::Timer::timerMap;
 
 moodycamel::ConcurrentQueue<std::function<void()>> taskQueue_;
@@ -30,11 +32,25 @@ int  sdf::Window::mouseY_ = 0;
 
 int  sdf::Window::mouseX_ = 0;
 
-ULONG_PTR sdf::Gdip::gdiplusToken_ = 0;
+ULONG_PTR gdiplusToken_ = 0;
 
-Gdiplus::GdiplusStartupInput sdf::Gdip::gdiplusStartupInput_ = 0;
+Gdiplus::GdiplusStartupInput gdiplusStartupInput_ = 0;
 
 float sdf::Control::scale_ = 1;
+
+
+void Gdip::Init()
+{
+	if (gdiplusToken_ == 0) {
+		Gdiplus::GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, NULL);
+		atexit(Shutdown);
+	}
+}
+
+void sdf::Gdip::Shutdown()
+{
+	Gdiplus::GdiplusShutdown(gdiplusToken_);
+}
 
 sdf::Font::Font(long size, df::CC name) {
 	rawSize = size;
@@ -1096,6 +1112,7 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 	if (noBorder) {
 		sty = WS_POPUP | WS_VISIBLE;
 	}
+
 
 	handle_ = CreateWindowEx(styEX,
 		wndclass.lpszClassName,
@@ -2389,9 +2406,9 @@ void sdf::Control::drawRect(uint32_t* buf, int32_t bufW, int32_t x, int32_t y, i
 
 void recurRemoveHandle(Control* con) {
 	if (con->GetHandle()) {
-		con->setHW(0, 0);
-		//con->hide();
-		::SetParent(con->GetHandle(), 0);
+		//con->setHW(0, 0);
+		con->hide();
+		//::SetParent(con->GetHandle(), 0);
 		return;
 	}
 
@@ -2429,7 +2446,7 @@ void sdf::Control::_removeFromParent(bool remove) {
 void recurSetHandle(const std::shared_ptr<Control>& con, HWND handl) {
 	if (con->GetHandle()) {
 		::SetParent(con->GetHandle(), handl);
-		//con->show();
+		con->show();
 		return;
 	}
 	for (auto& c : con->memberList_) {
