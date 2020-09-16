@@ -8,7 +8,7 @@
 
 
 
-std::unordered_map<uint32_t, TimerItem> sdf::Timer::timerMap;
+std::unordered_map<uint32_t, sdf::TimerItem> sdf::Timer::timerMap;
 
 moodycamel::ConcurrentQueue<std::function<void()>> taskQueue_;
 
@@ -39,7 +39,7 @@ Gdiplus::GdiplusStartupInput gdiplusStartupInput_ = 0;
 float sdf::Control::scale_ = 1;
 
 
-void Gdip::Init()
+void sdf::Gdip::Init()
 {
 	if (gdiplusToken_ == 0) {
 		Gdiplus::GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput_, NULL);
@@ -267,7 +267,7 @@ void sdf::Control::doLeave(bool doEvent) {
 	}
 }
 
-void Control::doParentMove() {
+void sdf::Control::doParentMove() {
 	auto par = parent_;
 	auto cur = this;
 	while (par) {
@@ -504,7 +504,7 @@ BOOL sdf::Control::setPosAndHW(int32_t x, int32_t y, int32_t w, int32_t h) {
 	return false;
 }
 
-Timer sdf::Control::setTimer(uint32_t time, std::function<void()>&& func) {
+sdf::Timer sdf::Control::setTimer(uint32_t time, std::function<void()>&& func) {
 	return Timer::set(this, time, std::move(func));
 }
 
@@ -598,7 +598,7 @@ void sdf::Control::updateHandleXy(Gdi& gdi, DrawBuffer* draw) {
 	}
 }
 
-void Control::drawMember(DrawBuffer* draw) {
+void sdf::Control::drawMember(DrawBuffer* draw) {
 	needDraw = false;
 	DF_SCOPE_GUARD
 	{
@@ -1929,7 +1929,7 @@ bool sdf::ScrollView::ControlProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPa
 
 
 
-void ScrollView::onMouseMove(int32_t x, int32_t y) {
+void sdf::ScrollView::onMouseMove(int32_t x, int32_t y) {
 	//COUT(tt_("ScrollView onMouseMove"))
 	mouseX = x;
 	mouseY = y;
@@ -1937,7 +1937,7 @@ void ScrollView::onMouseMove(int32_t x, int32_t y) {
 	Control::onMouseMove(x, y);
 }
 
-void ScrollView::onLeave() {
+void sdf::ScrollView::onLeave() {
 	//COUT(tt_("ScrollView onLeave"))
 		//doLeave();
 
@@ -2138,7 +2138,7 @@ bool sdf::Control::setClipboardText(df::CCw text) {
 	return false;
 }
 
-DrawBuffer* sdf::Control::getDraw()
+sdf::DrawBuffer* sdf::Control::getDraw()
 {
 	DrawBuffer* draw = drawBuff_;
 	auto par = parent_;
@@ -2152,7 +2152,7 @@ DrawBuffer* sdf::Control::getDraw()
 	return draw;
 }
 
-Window* sdf::Control::getWindow() {
+sdf::Window* sdf::Control::getWindow() {
 	Control* top = getTopParent();
 	if (top) {
 		return dynamic_cast<Window*>(top);
@@ -2160,7 +2160,7 @@ Window* sdf::Control::getWindow() {
 	return nullptr;
 }
 
-DrawBuffer* sdf::Control::getDrawLayer(int32_t& x, int32_t& y, int32_t w, int32_t h, bool clear)
+sdf::DrawBuffer* sdf::Control::getDrawLayer(int32_t& x, int32_t& y, int32_t w, int32_t h, bool clear)
 {
 	if (!drawLayer_) {
 		drawLayer_ = new DrawBuffer(nullptr);
@@ -2404,7 +2404,7 @@ void sdf::Control::drawRect(uint32_t* buf, int32_t bufW, int32_t x, int32_t y, i
 	}
 }
 
-void recurRemoveHandle(Control* con) {
+void recurRemoveHandle(sdf::Control* con) {
 	if (con->GetHandle()) {
 		//con->setHW(0, 0);
 		con->hide();
@@ -2443,7 +2443,7 @@ void sdf::Control::_removeFromParent(bool remove) {
 	}
 }
 
-void recurSetHandle(const std::shared_ptr<Control>& con, HWND handl) {
+void recurSetHandle(const std::shared_ptr<sdf::Control>& con, HWND handl) {
 	if (con->GetHandle()) {
 		::SetParent(con->GetHandle(), handl);
 		con->show();
@@ -3311,7 +3311,7 @@ void sdf::Timer::onTimer(uint32_t id) {
 	it->second.func_();
 }
 
-Timer sdf::Timer::set(Control* con, uint32_t time, std::function<void()>&& func) {
+sdf::Timer sdf::Timer::set(Control* con, uint32_t time, std::function<void()>&& func) {
 	auto id = idCount()++;
 	if (!con) {
 		Throw_df(tt_("set Timer Error:Null Control"));
