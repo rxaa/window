@@ -1197,7 +1197,9 @@ void sdf::Window::openRaw(HWND parent/*=0*/, bool show) {
 	::UpdateWindow(handle_);
 	currentHandle_ = oldHandle;
 	//currentWindow_=oldWindow;
-
+	if (show) {
+		::PostMessage(handle_, WM_PAINT, 0, 0);
+	}
 
 }
 

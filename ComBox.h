@@ -94,8 +94,8 @@ namespace sdf
 				DrawBuffer* draw = getDraw();
 
 				drawStyle(draw, style, parent_->needDraw, false);
-				//update();
-				updateHandleXy(gdi_, draw);
+				update();
+				//updateHandleXy(gdi_, draw);
 			}
 		}
 		virtual void onMeasure() override;
