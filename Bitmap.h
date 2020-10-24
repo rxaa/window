@@ -130,7 +130,7 @@ namespace sdf {
 
 		///创建并关联32位ARGB位图
 		//返回像素数据首指针(大小w*h*4)
-		char* CreateDib(int w, int h);
+		char* CreateDib(int w, int h,int bitCount=32);
 
 		BOOL CreateBitmap(int w, int h) {
 			Init();

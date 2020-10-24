@@ -3151,7 +3151,7 @@ bool sdf::Bitmap::Load(int id, const df::CC& resType /*= tcc_("png")*/) {
 	return true;
 }
 
-char* sdf::Bitmap::CreateDib(int w, int h) {
+char* sdf::Bitmap::CreateDib(int w, int h, int bitCount) {
 	Init();
 	////////////////////
 	BITMAPINFO info = { {0} };
@@ -3160,9 +3160,9 @@ char* sdf::Bitmap::CreateDib(int w, int h) {
 	//info.bmiHeader.biHeight        = h;
 	info.bmiHeader.biHeight = -h;
 	info.bmiHeader.biPlanes = 1;
-	info.bmiHeader.biBitCount = 32;
+	info.bmiHeader.biBitCount = bitCount;
 	info.bmiHeader.biCompression = BI_RGB;
-	info.bmiHeader.biSizeImage = w * h * (32 / 8);
+	info.bmiHeader.biSizeImage = w * h * (bitCount / 8);
 
 	// 创建一块内存纹理并获取其数据指针
 	void* pBits = NULL;
