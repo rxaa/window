@@ -230,6 +230,12 @@ namespace sdf {
 			return g;
 		}
 
+
+		void resetDC(HDC dc){
+			ReleaseDc();
+			hdc_ = dc;
+		}
+
 		inline void ReleaseDc() {
 			if (hdc_) {
 				::DeleteDC(hdc_);
