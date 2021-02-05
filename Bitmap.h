@@ -238,7 +238,7 @@ namespace sdf {
 			releaseOld();
 			hdc_ = ::CreateCompatibleDC(GetScreen().GetDc());
 			//图像缩放算法
-			SetStretchBltMode(hdc_, HALFTONE);
+			//SetStretchBltMode(hdc_, HALFTONE);
 		}
 
 	};
