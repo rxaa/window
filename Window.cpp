@@ -988,6 +988,10 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 			//::SetBkMode((HDC)wParam, TRANSPARENT);
 			break;
 		}
+		case WM_ENDSESSION: {
+			winP->onEndSession();
+			 break;
+		 }
 		case WM_CTLCOLORDLG:
 			return (intptr_t)winP->OnDrawBackground();
 			//限制大小
