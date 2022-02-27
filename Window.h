@@ -252,6 +252,12 @@ namespace sdf {
 
 		}
 
+
+		//关机事件
+		virtual void onEndSession() {
+
+		}
+
 		//移动事件
 		virtual void onMove(int32_t x, int32_t y) {
 
