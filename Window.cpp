@@ -1266,6 +1266,31 @@ void sdf::Window::run(bool show/*=true*/) {
 }
 
 
+bool sdf::Window::setClip(df::CC text)
+{
+	if (OpenClipboard(NULL))
+	{
+		EmptyClipboard();
+		size_t size = (text.size() + 1) * sizeof(TCHAR);
+		HGLOBAL clipbuffer = GlobalAlloc(GMEM_DDESHARE, size);
+		if (clipbuffer == NULL) {
+			return false;
+		}
+		TCHAR* buffer = (TCHAR*)GlobalLock(clipbuffer);
+		if (buffer == NULL) {
+			return false;
+		}
+		memcpy(buffer, text.c_str(), size);
+		GlobalUnlock(clipbuffer);
+		SetClipboardData(sizeof(TCHAR) == 2 ? CF_UNICODETEXT : CF_TEXT, clipbuffer);
+
+		CloseClipboard();
+		return true;
+	}
+	return false;
+}
+
+
 float sdf::Window::getScale() {
 	auto res = (float)GetDeviceCaps(Gdi::GetScreen().GetDc(), LOGPIXELSX) / (float)96.0;
 	if (res < 1)

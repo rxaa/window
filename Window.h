@@ -22,8 +22,14 @@ namespace sdf {
 		static int mouseX_, mouseY_;
 		static const int32_t taskMessage_ = WM_USER + 8274;
 
-
-
+		/// <summary>
+		/// 设置剪贴板
+		/// </summary>
+		/// <param name="text"></param>
+		/// <returns></returns>
+		static bool setClip(df::CC text);
+		
+		
 		df::CC winClassName;
 
 		//构造
