@@ -1375,7 +1375,7 @@ void sdf::Window::PopMessage(const df::CC& msg, int time) {
 		}
 	}
 
-	HWND hwnd = CreateWindowEx(WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+	HWND hwnd = CreateWindowEx(WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
 		szAppName,
 		msg.char_,
 		WS_POPUP,

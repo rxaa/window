@@ -265,6 +265,16 @@ namespace sdf {
 			return hdc_;
 		}
 
+		inline int getW() {
+			int wid_ = ::GetDeviceCaps(hdc_, HORZRES);
+			if (wid_ == 0) {
+				auto dc = ::GetDC(0);
+				resetDC(dc);
+			}
+			wid_ = ::GetDeviceCaps(hdc_, HORZRES);
+			return wid_;
+		}
+
 		inline bool SetObject(HGDIOBJ obj) {
 			return ::SelectObject(hdc_, obj) != NULL;
 		}
