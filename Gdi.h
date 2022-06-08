@@ -266,12 +266,12 @@ namespace sdf {
 		}
 
 		inline int getW() {
-			int wid_ = ::GetDeviceCaps(hdc_, HORZRES);
+			int wid_ = ::GetDeviceCaps(hdc_, DESKTOPHORZRES);
 			if (wid_ == 0) {
 				auto dc = ::GetDC(0);
 				resetDC(dc);
 			}
-			wid_ = ::GetDeviceCaps(hdc_, HORZRES);
+			wid_ = ::GetDeviceCaps(hdc_, DESKTOPHORZRES);
 			return wid_;
 		}
 
