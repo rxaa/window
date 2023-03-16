@@ -225,6 +225,8 @@ namespace sdf {
 			return screen;
 		}
 
+
+
 		static Gdi& gobalGdi() {
 			static Gdi g(::CreateCompatibleDC(::GetDC(0)));
 			return g;
@@ -272,6 +274,16 @@ namespace sdf {
 				resetDC(dc);
 			}
 			wid_ = ::GetDeviceCaps(hdc_, DESKTOPHORZRES);
+			return wid_;
+		}
+
+		inline int getH() {
+			int wid_ = ::GetDeviceCaps(hdc_, DESKTOPVERTRES);
+			if (wid_ == 0) {
+				auto dc = ::GetDC(0);
+				resetDC(dc);
+			}
+			wid_ = ::GetDeviceCaps(hdc_, DESKTOPVERTRES);
 			return wid_;
 		}
 
