@@ -37,7 +37,7 @@ namespace sdf {
 		static HWND currentHandle_;
 		static Window* parentWindow_;
 		static Window* currentWindow_;
-		static float scale_;
+		
 		static std::vector<Control*> controlOpenList_;
 		static std::array<uint32_t, 256> keyboardState;
 
@@ -110,7 +110,8 @@ namespace sdf {
 		bool hasCursor = false;
 
 	public:
-
+		static float scale_;
+		static bool hasSetScale_;
 		std::function<void()> onCreate_;
 		std::function<void()> onBind_;
 		friend Window;

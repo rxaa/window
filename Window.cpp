@@ -5,7 +5,11 @@
 #include "FormOk.h"
 #include "ScrollView.h"
 #include "WebBrowser.hpp"
+#include "shellscalingapi.h"
+#ifdef _MSC_VER
+#pragma comment(lib, "SHCore")
 
+#endif // _MSC_VER
 
 
 std::unordered_map<uint32_t, sdf::TimerItem> sdf::Timer::timerMap;
@@ -37,7 +41,7 @@ ULONG_PTR gdiplusToken_ = 0;
 Gdiplus::GdiplusStartupInput gdiplusStartupInput_ = 0;
 
 float sdf::Control::scale_ = 1;
-
+bool sdf::Control::hasSetScale_ = false;
 
 void sdf::Gdip::Init()
 {
@@ -874,7 +878,27 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 			winP->closeRelease((int)wParam);
 			return TRUE;
 		}
+		case WM_DPICHANGED:
+		{
 
+
+			auto g_dpi = HIWORD(wParam);
+			//UpdateDpiDependentFontsAndResources();
+			COUT(tt_("WM_DPICHANGED: ") << g_dpi)
+				RECT* const prcNewWindow = (RECT*)lParam;
+			SetWindowPos(hDlg,
+				NULL,
+				prcNewWindow->left,
+				prcNewWindow->top,
+				prcNewWindow->right - prcNewWindow->left,
+				prcNewWindow->bottom - prcNewWindow->top,
+				SWP_NOZORDER | SWP_NOACTIVATE);
+			Gdi::GetScreen().resetDC(::GetDC(0));
+			COUT(tt_("w") << Gdi::GetScreen().getW());
+			sdf::Control::scale_ = g_dpi / 96.0;
+			winP->update();
+			return 0;
+		}
 		case WM_COMMAND: {
 			auto l = LOWORD(wParam);
 			auto code = HIWORD(wParam);
@@ -990,8 +1014,8 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 		}
 		case WM_ENDSESSION: {
 			winP->onEndSession();
-			 break;
-		 }
+			break;
+		}
 		case WM_CTLCOLORDLG:
 			return (intptr_t)winP->OnDrawBackground();
 			//限制大小
@@ -1296,11 +1320,15 @@ bool sdf::Window::setClip(df::CC text)
 
 
 float sdf::Window::getScale() {
-	auto res = (float)GetDeviceCaps(Gdi::GetScreen().GetDc(), LOGPIXELSX) / (float)96.0;
-	if (res < 1)
-		res = 1;
-	Control::scale_ = res;
-	return res;
+	if (!Control::hasSetScale_) {
+		auto res = (float)GetDeviceCaps(Gdi::GetScreen().GetDc(), LOGPIXELSX) / (float)96.0;
+		if (res < 1)
+			res = 1;
+
+		Control::scale_ = res;
+		Control::hasSetScale_ = true;
+	}
+	return Control::scale_;
 }
 
 void sdf::Window::runOnUi(std::function<void()>&& func) {
@@ -1531,7 +1559,8 @@ sdf::Font& sdf::Control::GlobalFont() {
 }
 
 void sdf::Control::initInst(HINSTANCE inst) {
-	::SetProcessDPIAware();
+	//::SetProcessDPIAware();
+	::SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 	progInstance_ = inst;
 	Window::getScale();
 }
