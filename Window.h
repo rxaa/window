@@ -22,12 +22,15 @@ namespace sdf {
 		static int mouseX_, mouseY_;
 		static const int32_t taskMessage_ = WM_USER + 8274;
 
+
 		/// <summary>
 		/// 设置剪贴板
 		/// </summary>
 		/// <param name="text"></param>
 		/// <returns></returns>
 		static bool setClip(df::CC text);
+
+		static void addHotKey(int id, UINT mod, UINT key,std::function<void()> func);
 		
 		
 		df::CC winClassName;

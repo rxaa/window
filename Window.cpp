@@ -11,6 +11,8 @@
 
 #endif // _MSC_VER
 
+//热键函数列表
+std::map< int, std::function<void()>> hotKeyFuncs_;
 
 std::unordered_map<uint32_t, sdf::TimerItem> sdf::Timer::timerMap;
 
@@ -854,6 +856,8 @@ intptr_t __stdcall sdf::Window::WndProc(HWND hDlg, UINT message, WPARAM wParam, 
 	try {
 		///获取窗口对象指针
 
+
+
 		Window* winP = (Window*)GetUserData(hDlg);
 		if (winP == nullptr) {
 			//currentHandle_ = 0;
@@ -1244,6 +1248,14 @@ void sdf::Window::Release() {
 void sdf::Window::MessageLoop() {
 	MSG msg;
 	while (::GetMessage(&msg, NULL, 0, 0)) {
+
+		if (msg.message == WM_HOTKEY) {
+			COUT(tt_("热键") << msg.wParam);
+			auto res = hotKeyFuncs_.find(msg.wParam);
+			if (res != hotKeyFuncs_.end()) {
+				res->second();
+			}
+		}
 		//if(IsDialogMessage (msg.hwnd , &msg))continue;
 
 		//if (WinVar::accelTable_ && TranslateAccelerator (msg.hwnd, WinVar::accelTable_, &msg))
@@ -1316,6 +1328,15 @@ bool sdf::Window::setClip(df::CC text)
 		return true;
 	}
 	return false;
+}
+
+void sdf::Window::addHotKey(int id, UINT mod, UINT key, std::function<void()> func)
+{
+	hotKeyFuncs_[id] = func;
+	auto res = ::RegisterHotKey(0, id, mod, key);
+	if (!res) {
+		DF_ERR(tcc_("RegisterHotKey failed")<< key);
+	}
 }
 
 
